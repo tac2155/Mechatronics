@@ -1,0 +1,7 @@
+Error[113]   E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 3 : Symbol not previously defined (B)
+Error[124]   E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 3 : Illegal argument (expected single character)
+Error[112]   E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 3 : Missing operator
+Error[126]   E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 3 : Argument out of range (not a valid config register address)
+Message[301] C:\PROGRAM FILES\MICROCHIP\MPASM SUITE\P16F74.INC 33 : MESSAGE: (Processor-header file mismatch.  Verify selected processor.)
+Message[302] E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 33 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] E:\MECHATRONICS\UPDOWNCOUNTER\UPDOWNCOUNTER.ASM 34 : Register in operand not in bank 0.  Ensure that bank bits are correct.
