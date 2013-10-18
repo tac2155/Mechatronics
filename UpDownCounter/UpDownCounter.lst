@@ -1,4 +1,4 @@
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  1
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -6,11 +6,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 
                       00001                 LIST P=16F74
                       00002                 title "Counting Program"
-Error[113]  : Symbol not previously defined (B)
-Error[124]  : Illegal argument (expected single character)
-Error[112]  : Missing operator
-Error[126]  : Argument out of range (not a valid config register address)
-                      00003                 __CONFIG B"11111110110010"
+2007   3FB2           00003                 __CONFIG B'11111110110010'
                       00004                 
                       00005                 #include <P16F74.INC>
                       00001         LIST
@@ -21,7 +17,6 @@ Error[126]  : Argument out of range (not a valid config register address)
                       00006 ;  (c) Copyright 1999-2013 Microchip Technology, All rights reserved
                       00007 ;==========================================================================
                       00008 
-Message[301]: MESSAGE: (Processor-header file mismatch.  Verify selected processor.)
                       00497         LIST
                       00006                 
                       00007 ; Variable Declarations
@@ -31,14 +26,14 @@ Message[301]: MESSAGE: (Processor-header file mismatch.  Verify selected process
   00000022            00011 State   equ             22h                             ; program state register
                       00012                 
                       00013                 
-                      00014                 org 00h                                 ; Assembler directive - reset vector
+0000                  00014                 org 00h                                 ; Assembler directive - reset vector
                       00015                 
-0000   2???           00016                 goto    initPort
+0000   2810           00016                 goto    initPort
                       00017                 
-                      00018                 org     04h                             ; interrupt vector
-0004   2???           00019                 goto    isrService              ; jump to interrupt routine (dummy)
+0004                  00018                 org     04h                             ; interrupt vector
+0004   2833           00019                 goto    isrService              ; jump to interrupt routine (dummy)
                       00020                 
-                      00021                 org 10h                                 ; beginning of program storage
+0010                  00021                 org 10h                                 ; beginning of program storage
                       00022                 
                       00023 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                       00024 
@@ -57,43 +52,43 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
 0016   1283           00035                 bcf             STATUS,RP0              ; clear bit in STATUS register for bank 0
 0017   01A0           00036                 clrf    Count                   ; zero the counter
                       00037                 
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  2
+                      00038 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      00039 
+0018                  00040 waitPress       
+0018   1807           00041                 btfsc   PORTC,0                 ; see if green button pressed
+0019   281D           00042                 goto    GreenPress              ; green button is pressed
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  2
 Counting Program
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00038 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                      00039 
-0018                  00040 waitPress       
-0018   1807           00041                 btfsc   PORTC,0                 ; see if green button pressed
-0019   2???           00042                 goto    GreenPress              ; green button is pressed
 001A   1887           00043                 btfsc   PORTC,1                 ; see if red button pressed
-001B   2???           00044                 goto    RedPress                ; red button is pressed
-001C   2???           00045                 goto    waitPress               ; keep checking
+001B   2823           00044                 goto    RedPress                ; red button is pressed
+001C   2818           00045                 goto    waitPress               ; keep checking
                       00046                 
 001D                  00047 GreenPress
 001D   1C07           00048                 btfss   PORTC,0                 ; check if green button still pressed
-001E   2???           00049                 goto    waitPress               ; noise - keep checking for press
+001E   2818           00049                 goto    waitPress               ; noise - keep checking for press
                       00050                 
 001F                  00051 GreenRelease            
 001F   1807           00052                 btfsc   PORTC,0                 ; check if green button released
-0020   2???           00053                 goto    GreenRelease    ; no - wait
+0020   281F           00053                 goto    GreenRelease    ; no - wait
                       00054                 
-0021   2???           00055                 call    SwitchDelay             ; let switch debounce
-0022   2???           00056                 goto    IncCount                ; increment the counter
+0021   202E           00055                 call    SwitchDelay             ; let switch debounce
+0022   282A           00056                 goto    IncCount                ; increment the counter
                       00057                 
 0023                  00058 RedPress
 0023   1C87           00059                 btfss   PORTC,1                 ; check if red button still pressed
-0024   2???           00060                 goto    waitPress               ; noise - keep checking for press       
+0024   2818           00060                 goto    waitPress               ; noise - keep checking for press       
                       00061                 
 0025                  00062 RedRelease
 0025   1887           00063                 btfsc   PORTC,1                 ; check if red button released
-0026   2???           00064                 goto    RedRelease              ; no - keep checking for release
+0026   2825           00064                 goto    RedRelease              ; no - keep checking for release
                       00065                 
-0027   2???           00066                 call    SwitchDelay             ; let the switch debounce
+0027   202E           00066                 call    SwitchDelay             ; let the switch debounce
 0028   03A0           00067                 decf    Count,F                 ; decrement the count - store in register
-0029   2???           00068                 goto    outCount                ; output count on LEDs
+0029   282B           00068                 goto    outCount                ; output count on LEDs
                       00069                 
 002A                  00070 IncCount        
 002A   0AA0           00071                 incf    Count,F                 ; increment the count - store in register
@@ -102,31 +97,25 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 002B   0820           00074                 movf    Count,W                 ; move the count to W register
 002C   0088           00075                 movwf   PORTD                   ; display count on Port D
                       00076                 
-002D   2???           00077                 goto    waitPress               ; wait for next button press
+002D   2818           00077                 goto    waitPress               ; wait for next button press
                       00078                 
 002E                  00079 SwitchDelay
 002E   3014           00080                 movlw   D'20'                   ; Load with decimal 20
 002F   00A1           00081                 movwf   Temp
 0030                  00082 delay
 0030   0BA1           00083                 decfsz  Temp,F                  ; 60usec delay
-0031   2???           00084                 goto    delay
+0031   2830           00084                 goto    delay
 0032   0008           00085                 return
                       00086                 
                       00087 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       00088 
 0033                  00089 isrService
-0033   2???           00090                 goto isrService                 ; error - stay here
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  3
-Counting Program
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
+0033   2833           00090                 goto isrService                 ; error - stay here
                       00091                 
                       00092 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       00093 
                       00094                 END                                             ; Assembler directive - end of program
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  4
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  3
 Counting Program
 
 SYMBOL TABLE
@@ -185,7 +174,7 @@ FERR                              00000002
 FSR                               00000004
 GIE                               00000007
 GO                                00000002
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  5
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  4
 Counting Program
 
 SYMBOL TABLE
@@ -244,7 +233,7 @@ PMDATA                            0000010C
 PMDATH                            0000010E
 PORTA                             00000005
 PORTB                             00000006
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  6
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  5
 Counting Program
 
 SYMBOL TABLE
@@ -303,7 +292,7 @@ RD5                               00000005
 RD6                               00000006
 RD7                               00000007
 RE0                               00000000
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  7
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  6
 Counting Program
 
 SYMBOL TABLE
@@ -362,7 +351,7 @@ TMR1H                             0000000F
 TMR1IE                            00000000
 TMR1IF                            00000000
 TMR1L                             0000000E
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  8
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  7
 Counting Program
 
 SYMBOL TABLE
@@ -421,7 +410,7 @@ TX9                               00000006
 TX9D                              00000000
 TXD8                              00000000
 TXEN                              00000005
-MPASM  5.51                 UPDOWNCOUNTER.ASM   10-17-2013  17:42:06         PAGE  9
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  8
 Counting Program
 
 SYMBOL TABLE
@@ -463,16 +452,30 @@ _WDTE_ON                          00003FFF
 _WDT_OFF                          00003FFB
 _WDT_ON                           00003FFF
 _XT_OSC                           00003FFD
-__16F747                          00000001
+__16F74                           00000001
 __DEBUG                           1
 delay                             00000030
 initPort                          00000010
 isrService                        00000033
 outCount                          0000002B
 waitPress                         00000018
+MPASM  5.51                 UPDOWNCOUNTER.ASM   10-18-2013  9:00:17         PAGE  9
+Counting Program
 
-Errors   :     4
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+
+0000 : X---X----------- XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXX------------
+2000 : -------X-------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:    38
+Program Memory Words Free:  4058
+
+
+Errors   :     0
 Warnings :     0 reported,     0 suppressed
-Messages :     3 reported,     0 suppressed
+Messages :     2 reported,     0 suppressed
 
 
