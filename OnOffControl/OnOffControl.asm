@@ -66,13 +66,13 @@ waitGreenPress							; initial wait for green button
 		goto		GreenPressInitial	; green button is pressed
 		goto 		waitGreenPress 		; keep checking
 
-waitPress   							; wait press when in a mode
+WaitPress   							; wait press when in a mode
 
 		btfsc 		PORTC,0 			; see if green button pressed
 		goto		GreenPress			; green button is pressed
 		btfsc		PORTC,1 			; see if red button is pressed
 		goto		RedPress
-		goto 		waitPress 			; keep checking		
+		goto 		WaitPress 			; keep checking		
 
 GreenPressInitial
 
@@ -83,7 +83,7 @@ GreenPressInitial
 GreenPress
 
 		btfss		PORTC,0 			; check if red button still pressed
-		goto		waitPress			; noise - keep checking
+		goto		WaitPress			; noise - keep checking
 
 GreenRelease
 
@@ -104,7 +104,7 @@ GreenRelease
 RedPress
 	
 		btfss		PORTC,1 			; check if red button still pressed
-		goto		waitPress			; noise - keep checking
+		goto		WaitPress			; noise - keep checking
 
 RedRelease
 	
@@ -139,20 +139,20 @@ Mode1
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
-		call 		waitPress	
+		call 		WaitPress	
 		bsf			PORTD,0  			; turn on transistor
-		call		waitPress
+		call		WaitPress
 		bcf 		PORTD,1 			; turn off transistor
 		incf		Count,F 			; increment count
 		goto		Mode1 				; return to start of mode 1		
 
 ;
-; Mode 2 - engages solenoid for time based on potentiometer
+;	Mode 2 - engages solenoid for time based on potentiometer
 Mode2
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
-		call 		waitPress
+		call 		WaitPress
 		bsf			ADCON0,GO 			; start A/D conversion
 		call 		waitLoop     		; wait for A/D to finish
 		movf 		ADRES,W 			; get A/D value
@@ -160,24 +160,46 @@ Mode2
 		call		PotenCheck
 		bsf			PORTD,0 			; turn on transistor
 		call 		SolednoidRetract	; wait for solenoid to retract 
-		goto		SolenoidTime 		; time for solenoid to be on
-		
+		call		SolenoidTime 		; time for solenoid to be on
+
+;
+;	Mode 3 - 
 Mode3
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
+		call 		WaitPress 			; wait for button pressed
+		bsf 		ADCON0,GO 			; start A/D conversion
+		call		waitLoop			; wait for A/D to finish
+		movf 		ADRES,W 			; get A/D value
+		movwf 		Count 				; store in count
+		call 		PotenCheck
+		bsf 		PORTD,0
+		call 		SolednoidRetract	; wait for solenoid to engage
+		bsf 		PORTD,1 			; turn on small transistor
+		call		SwitchDelay 		; small delay
+		bcf 		PORTD,0 			; turn off main transistor
+		goto 		SolenoidTime3		; 
 	
 		goto		Mode3
 
-waitLoop
+SolenoidTime3
+	
+		call	 	timeLoop  			; delay 1 second
+		decfsz 		Count 				; decrement counter	
+		goto 		SolenoidTime3 		; loop
+		bcf 	   	PORTD,1 			; when time done, turn off transistor
+		goto		Mode3
 
-		btfsc 		ADCON0				; check if A/D finished
+waitLoop
+		
+		btfsc 		ADCON0,GO				; check if A/D finished
 		goto		waitLoop			; A/D not finished, wait 
 		return							; return to mode
 
 PotenCheck								; checks for error - set to 0
 		incf		Count 				; increase count
-		decfz 		Count 				; decrease count
+		decfsz 		Count 				; decrease count
 		return
 		goto 		ModeError			; if count 0, error
 
@@ -186,9 +208,10 @@ SolenoidTime
 		call 		timeLoop 			; count one second
 		btfsc 		PORTC,1 			; check if red button pressed
 		goto		TimeReset			; reset solednoid time
-		decfz 		Count  				; decrease count
+		decfsz 		Count  				; decrease count
 		goto 		SolenoidTime
-		bcf 		PORTD,0 			; turn of transistor
+		bcf 		PORTD,0 			; turn off transistor
+		return
 
 TimeReset
 		call		RedPress
@@ -199,13 +222,8 @@ TimeReset
 SolednoidRetract
 		btfss		PORTD,2 			; check if sensor on
 		goto		SolednoidRetract	; no - wait
+		call 		SwitchDelay 		; small delay
 		return
-
-SolenoidExtend
-		btfsc		PORTD,2
-		goto		SolenoidExtend
-		return
-;
 
 ;
 ;	Delay for switch to debounce

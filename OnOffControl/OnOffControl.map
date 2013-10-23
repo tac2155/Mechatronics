@@ -1,5 +1,5 @@
 MPLINK 4.49, Linker
-Linker Map File - Created Tue Oct 22 11:18:20 2013
+Linker Map File - Created Tue Oct 22 21:56:26 2013
 
                                  Section Info
                   Section       Type    Address   Location Size(Bytes)
@@ -7,7 +7,7 @@ Linker Map File - Created Tue Oct 22 11:18:20 2013
                    .org_0       code   0x000000    program   0x000002
                    .cinit    romdata   0x000001    program   0x000004
                    .org_1       code   0x000004    program   0x000002
-                   .org_2       code   0x000010    program   0x0000ba
+                   .org_2       code   0x000010    program   0x00013a
 .config_2007_ONOFFCONTROL.O       code   0x002007    program   0x000002
 
 
@@ -17,9 +17,9 @@ Linker Map File - Created Tue Oct 22 11:18:20 2013
                            ---------   ---------      
                             0x000000    0x000002      
                             0x000004    0x000004      
-                            0x000010    0x00006c      
+                            0x000010    0x0000ac      
                             0x002007    0x002007      
-            98 out of 4102 program addresses used, program memory utilization is 2%
+            162 out of 4102 program addresses used, program memory utilization is 3%
 
 
 
@@ -27,25 +27,33 @@ Linker Map File - Created Tue Oct 22 11:18:20 2013
                      Name    Address   Location    Storage File                     
                 ---------  ---------  ---------  --------- ---------                
                GreenPress   0x00002c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+        GreenPressInitial   0x000029    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
              GreenRelease   0x00002e    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
                     Mode1   0x00004a    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              Mode1Extend   0x00004d    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    Mode2   0x000051    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    Mode3   0x000052    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               ModeSelect   0x00003f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              ModeSelectA   0x000047    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                 RedPress   0x000039    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               RedRelease   0x00003b    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              SwitchDelay   0x000053    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    delay   0x000055    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    Mode2   0x000052    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    Mode3   0x00005d    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                ModeError   0x00008c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               ModeSelect   0x00003e    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+              ModeSelectA   0x000045    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               PotenCheck   0x000074    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 RedPress   0x000038    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               RedRelease   0x00003a    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               SetupDelay   0x0000a7    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+         SolednoidRetract   0x000083    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+             SolenoidTime   0x000078    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+            SolenoidTime3   0x00006c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+              SwitchDelay   0x000087    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                TimeReset   0x00007f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                WaitPress   0x000024    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    delay   0x000089    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                   initAD   0x0000a0    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
                  initPort   0x000010    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               isrService   0x00006c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                modeError   0x000058    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                timeDelay   0x000065    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                 timeLoop   0x00005f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               isrService   0x0000ac    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 setDelay   0x0000a9    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                timeDelay   0x000099    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 timeLoop   0x000093    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
            waitGreenPress   0x000021    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-            waitPressMode   0x000027    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-             waitRedPress   0x000024    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 waitLoop   0x000071    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
 
 
 
@@ -54,23 +62,31 @@ Linker Map File - Created Tue Oct 22 11:18:20 2013
                 ---------  ---------  ---------  --------- ---------                
                  initPort   0x000010    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
            waitGreenPress   0x000021    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-             waitRedPress   0x000024    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-            waitPressMode   0x000027    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                WaitPress   0x000024    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+        GreenPressInitial   0x000029    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
                GreenPress   0x00002c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
              GreenRelease   0x00002e    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                 RedPress   0x000039    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               RedRelease   0x00003b    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               ModeSelect   0x00003f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              ModeSelectA   0x000047    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 RedPress   0x000038    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               RedRelease   0x00003a    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               ModeSelect   0x00003e    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+              ModeSelectA   0x000045    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
                     Mode1   0x00004a    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              Mode1Extend   0x00004d    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    Mode2   0x000051    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    Mode3   0x000052    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-              SwitchDelay   0x000053    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                    delay   0x000055    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                modeError   0x000058    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                 timeLoop   0x00005f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-                timeDelay   0x000065    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
-               isrService   0x00006c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    Mode2   0x000052    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    Mode3   0x00005d    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+            SolenoidTime3   0x00006c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 waitLoop   0x000071    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               PotenCheck   0x000074    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+             SolenoidTime   0x000078    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                TimeReset   0x00007f    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+         SolednoidRetract   0x000083    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+              SwitchDelay   0x000087    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                    delay   0x000089    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                ModeError   0x00008c    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 timeLoop   0x000093    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                timeDelay   0x000099    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                   initAD   0x0000a0    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               SetupDelay   0x0000a7    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+                 setDelay   0x0000a9    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
+               isrService   0x0000ac    program     static E:\Mechatronics\OnOffControl\OnOffControl.asm
 
 
