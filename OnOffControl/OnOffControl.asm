@@ -17,7 +17,8 @@ Timer1	EQU		21h
 Timer0	EQU		22h
 Temp	EQU		23h						; temporary storage variable
 Count	EQU		24h						; count storage variable
-State	EQU		25h						; cprogam state register
+Count1	EQU 	25h
+State	EQU		26h						; cprogam state register
 
 
 		ORG		00h						; reset vector
@@ -42,7 +43,6 @@ initPort
 		clrf		PORTE				; clear Port E
 
 		call		initAD 				; call to initialize A/D conversion
-		call		SetupDelay			; delay for A/D setup
 
 		bsf			STATUS,RP0			; select register bank 1
 		movlw		B'11111100'			; move 0xFC into W register
@@ -74,15 +74,15 @@ WaitPress   							; wait press when in a mode
 		goto		RedPress
 		goto 		WaitPress 			; keep checking		
 
-GreenPressInitial
+GreenPressInitial 						; check for initial noise
 
 		btfss		PORTC,0 			; check if green button still pressed
 		goto 		waitGreenPress		; noise - keep checking
 		goto		GreenRelease
 
-GreenPress
+GreenPress 								; check for noise while in modes
 
-		btfss		PORTC,0 			; check if red button still pressed
+		btfss		PORTC,0 			; check if green button still pressed
 		goto		WaitPress			; noise - keep checking
 
 GreenRelease
@@ -113,8 +113,9 @@ RedRelease
 		call        SwitchDelay         ; let switch debounce
 		return
 
+; determines what mode octal switch is in
 
-ModeSelect 								; determines what mode octal switch is in
+ModeSelect 								
 		
 		btfsc		State,2 			; if bit 2 is one
 		goto		ModeError 			; error - not 1, 2, or 3
@@ -142,12 +143,13 @@ Mode1
 		call 		WaitPress	
 		bsf			PORTD,0  			; turn on transistor
 		call		WaitPress
-		bcf 		PORTD,1 			; turn off transistor
+		bcf 		PORTD,0 			; turn off transistor
 		incf		Count,F 			; increment count
 		goto		Mode1 				; return to start of mode 1		
 
 ;
 ;	Mode 2 - engages solenoid for time based on potentiometer
+
 Mode2
 
 		movf 		State,W    			; store state in w register
@@ -155,74 +157,90 @@ Mode2
 		call 		WaitPress
 		bsf			ADCON0,GO 			; start A/D conversion
 		call 		waitLoop     		; wait for A/D to finish
-		movf 		ADRES,W 			; get A/D value
-		movwf 		Count 				; store in count
-		call		PotenCheck
 		bsf			PORTD,0 			; turn on transistor
-		call 		SolednoidRetract	; wait for solenoid to retract 
+		call 		SolednoidEngage		; wait for solenoid to Engage	 
 		call		SolenoidTime 		; time for solenoid to be on
 
 ;
-;	Mode 3 - 
+;	Mode 3 - engage solenoid, switch transistors, time based on pot
+
 Mode3
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
+		movlw 		D'10' 				; store 10 in w register, for error checking
+		movwf 		Count1 				; store in count 2 variable
 		call 		WaitPress 			; wait for button pressed
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
 		movf 		ADRES,W 			; get A/D value
 		movwf 		Count 				; store in count
-		call 		PotenCheck
+		call 		PotenCheck 			; error check - make sure not 0
 		bsf 		PORTD,0
-		call 		SolednoidRetract	; wait for solenoid to engage
+		call 		SolednoidEngage		; wait for solenoid to engage
 		bsf 		PORTD,1 			; turn on small transistor
 		call		SwitchDelay 		; small delay
 		bcf 		PORTD,0 			; turn off main transistor
-		goto 		SolenoidTime3		; 
-	
-		goto		Mode3
+		goto 		SolenoidTime3		; time for solenoid to be engaged
+
+; 	no red button reset timer, cannot be engaged for more than 10 seconds
 
 SolenoidTime3
 	
-		call	 	timeLoop  			; delay 1 second
+		call	 	ADTimeLoop  		; delay .25 seconds
+		call 		TimeCheck
 		decfsz 		Count 				; decrement counter	
 		goto 		SolenoidTime3 		; loop
 		bcf 	   	PORTD,1 			; when time done, turn off transistor
 		goto		Mode3
 
+TimeCheck
+		decfsz		Count1
+		return
+		goto 		ModeError  			
+
+
 waitLoop
 		
-		btfsc 		ADCON0,GO				; check if A/D finished
+		btfsc 		ADCON0,GO			; check if A/D finished
 		goto		waitLoop			; A/D not finished, wait 
+		movf 		ADRES,W 			; get A/D value
+		movwf 		Count
+		call		PotenCheck 			; make sure not 0
+		rrf 		Count				; rotate twice right
+		rrf 		Count 				; dividing by 4
+		movlw 		B'01111111' 		; mask to remove possible carry bit
+		andwf 		Count,F 			; store in count 
 		return							; return to mode
 
-PotenCheck								; checks for error - set to 0
-		incf		Count 				; increase count
+; Error check - checks if potentiometer is set to 0
+
+PotenCheck								
+
+		incfsz 		Count				; increase count
 		decfsz 		Count 				; decrease count
-		return
-		goto 		ModeError			; if count 0, error
+		return 							; return with count unchanged
+		goto 		ModeError			; else if count 0, error
 
 SolenoidTime
-
-		call 		timeLoop 			; count one second
+		
+		call 		timeLoop 			; count 1 second
 		btfsc 		PORTC,1 			; check if red button pressed
 		goto		TimeReset			; reset solednoid time
 		decfsz 		Count  				; decrease count
 		goto 		SolenoidTime
 		bcf 		PORTD,0 			; turn off transistor
-		return
+		goto 		Mode2
 
 TimeReset
-		call		RedPress
-		movf 		ADRES,W 			; get A/D value
-		movwf 		Count 				; store in count
+		
+		bsf 		ADCON0,GO 			; start A/D conversion
+		call		waitLoop			; wait for A/D to finish
 		goto		SolenoidTime		; restart solenoid time
 
-SolednoidRetract
+SolednoidEngage	
 		btfss		PORTD,2 			; check if sensor on
-		goto		SolednoidRetract	; no - wait
-		call 		SwitchDelay 		; small delay
+		goto		SolednoidEngage		; no - wait
 		return
 
 ;
@@ -272,6 +290,26 @@ timeDelay
 
 		return	
 ;
+
+ADTimeLoop 								; .25 second delay
+		
+		movlw 		02h 				; most significant hex + 1
+		movwf 		Timer2 				; store in timer register
+		movlw		45h					; middle hex value
+		movwf 		Timer1 				; store in timer register
+		movlw 		85h 				; least significant register
+		movwf 		Timer0
+
+ADTimeDelay
+
+		decfsz 		Timer0,F 			; delay loop
+		goto 		ADTimeDelay
+		decfsz 		Timer1,F 			; delay loop 
+		goto 		ADTimeDelay
+		decfsz 		Timer2,F 			; delay loop
+		goto 		ADTimeDelay
+
+		return
 
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ;

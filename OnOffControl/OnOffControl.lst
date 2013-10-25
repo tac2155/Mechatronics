@@ -1,4 +1,4 @@
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  1
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -16,14 +16,8 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00010 
                       00011         #include <P16F74.INC>                           ;include file for device
                       00001         LIST
-                      00002 
-                      00003 ;==========================================================================
-                      00004 ;  MPASM PIC16F74 processor include
-                      00005 ; 
-                      00006 ;  (c) Copyright 1999-2013 Microchip Technology, All rights reserved
-                      00007 ;==========================================================================
-                      00008 
-                      00497         LIST
+                      00002 ; P16F74.INC  Standard Header File, Version 1.00    Microchip Technology, Inc.
+                      00334         LIST
                       00012 
                       00013 ;       Variable declarations
                       00014 
@@ -32,360 +26,407 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
   00000022            00017 Timer0  EQU             22h
   00000023            00018 Temp    EQU             23h                                             ; temporary storage variable
   00000024            00019 Count   EQU             24h                                             ; count storage variable
-  00000025            00020 State   EQU             25h                                             ; cprogam state register
-                      00021 
+  00000025            00020 Count1  EQU     25h
+  00000026            00021 State   EQU             26h                                             ; cprogam state register
                       00022 
-                      00023                 ORG             00h                                             ; reset vector
-                      00024 
-0000   2???           00025                 goto    initPort                                ; goto start of routine
-                      00026 
-                      00027                 ORG     04h                                             ; interrupt vector
-0004   2???           00028                 goto    isrService                              ; jump to interrupt routine
-                      00029 
+                      00023 
+                      00024                 ORG             00h                                             ; reset vector
+                      00025 
+0000   2???           00026                 goto    initPort                                ; goto start of routine
+                      00027 
+                      00028                 ORG     04h                                             ; interrupt vector
+0004   2???           00029                 goto    isrService                              ; jump to interrupt routine
                       00030 
-                      00031                 ORG             10h
-                      00032 
-                      00033 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                      00034 ;
-                      00035 ;       Port Initialization
-                      00036 
-0010                  00037 initPort
-                      00038 
-0010   0186           00039                 clrf            PORTB                           ; clear Port B
-0011   0188           00040                 clrf            PORTD                           ; clear Port D
-0012   0187           00041                 clrf            PORTC                           ; clear port C
-0013   0189           00042                 clrf            PORTE                           ; clear Port E
-                      00043 
-0014   2???           00044                 call            initAD                          ; call to initialize A/D conversion
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  2
+                      00031 
+                      00032                 ORG             10h
+                      00033 
+                      00034 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      00035 ;
+                      00036 ;       Port Initialization
+                      00037 
+0010                  00038 initPort
+                      00039 
+0010   0186           00040                 clrf            PORTB                           ; clear Port B
+0011   0188           00041                 clrf            PORTD                           ; clear Port D
+0012   0187           00042                 clrf            PORTC                           ; clear port C
+0013   0189           00043                 clrf            PORTE                           ; clear Port E
+                      00044 
+0014   2???           00045                 call            initAD                          ; call to initialize A/D conversion
+                      00046 
+0015   1683           00047                 bsf                     STATUS,RP0                      ; select register bank 1
+0016   30FC           00048                 movlw           B'11111100'                     ; move 0xFC into W register
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0017   0088           00049                 movwf           TRISD                           ; Port D pins 0 and 1 output
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  2
 On-Off Control
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-0015   2???           00045                 call            SetupDelay                      ; delay for A/D setup
-                      00046 
-0016   1683           00047                 bsf                     STATUS,RP0                      ; select register bank 1
-0017   30FC           00048                 movlw           B'11111100'                     ; move 0xFC into W register
+0018   30FF           00050                 movlw           H'ff'                           ; move 0xFF itno W register
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0018   0088           00049                 movwf           TRISD                           ; Port D pins 0 and 1 output
-0019   30FF           00050                 movlw           H'ff'                           ; move 0xFF itno W register
+0019   0087           00051                 movwf           TRISC                           ; configure port C as all inputs
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-001A   0087           00051                 movwf           TRISC                           ; configure port C as all inputs
+001A   0186           00052                 clrf            TRISB                           ; configure port B as all outputs
+001B   3007           00053                 movlw           B'00000111'                     ; move 0x07 to W register
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-001B   0186           00052                 clrf            TRISB                           ; configure port B as all outputs
-001C   3007           00053                 movlw           B'00000111'                     ; move 0x07 to W register
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-001D   0089           00054                 movwf           TRISE                           ; set pins 0-2 as input on port E
+001C   0089           00054                 movwf           TRISE                           ; set pins 0-2 as input on port E
                       00055                 
-001E   1283           00056                 bcf                     STATUS,RP0                      ; select register bank 0
-001F   01A4           00057                 clrf            Count                           ; clear counter register
-0020   01A5           00058                 clrf            State                           ; clear the state register
+001D   1283           00056                 bcf                     STATUS,RP0                      ; select register bank 0
+001E   01A4           00057                 clrf            Count                           ; clear counter register
+001F   01A6           00058                 clrf            State                           ; clear the state register
                       00059 
                       00060 ;
                       00061 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                       00062 
-0021                  00063 waitGreenPress                                                  ; initial wait for green button
+0020                  00063 waitGreenPress                                                  ; initial wait for green button
                       00064 
-0021   1807           00065                 btfsc           PORTC,0                         ; see if green button pressed
-0022   2???           00066                 goto            GreenPressInitial       ; green button is pressed
-0023   2???           00067                 goto            waitGreenPress          ; keep checking
+0020   1807           00065                 btfsc           PORTC,0                         ; see if green button pressed
+0021   2???           00066                 goto            GreenPressInitial       ; green button is pressed
+0022   2???           00067                 goto            waitGreenPress          ; keep checking
                       00068 
-0024                  00069 WaitPress                                                       ; wait press when in a mode
+0023                  00069 WaitPress                                                       ; wait press when in a mode
                       00070 
-0024   1807           00071                 btfsc           PORTC,0                         ; see if green button pressed
-0025   2???           00072                 goto            GreenPress                      ; green button is pressed
-0026   1887           00073                 btfsc           PORTC,1                         ; see if red button is pressed
-0027   2???           00074                 goto            RedPress
-0028   2???           00075                 goto            WaitPress                       ; keep checking         
+0023   1807           00071                 btfsc           PORTC,0                         ; see if green button pressed
+0024   2???           00072                 goto            GreenPress                      ; green button is pressed
+0025   1887           00073                 btfsc           PORTC,1                         ; see if red button is pressed
+0026   2???           00074                 goto            RedPress
+0027   2???           00075                 goto            WaitPress                       ; keep checking         
                       00076 
-0029                  00077 GreenPressInitial
+0028                  00077 GreenPressInitial                                               ; check for initial noise
                       00078 
-0029   1C07           00079                 btfss           PORTC,0                         ; check if green button still pressed
-002A   2???           00080                 goto            waitGreenPress          ; noise - keep checking
-002B   2???           00081                 goto            GreenRelease
+0028   1C07           00079                 btfss           PORTC,0                         ; check if green button still pressed
+0029   2???           00080                 goto            waitGreenPress          ; noise - keep checking
+002A   2???           00081                 goto            GreenRelease
                       00082 
-002C                  00083 GreenPress
+002B                  00083 GreenPress                                                              ; check for noise while in modes
                       00084 
-002C   1C07           00085                 btfss           PORTC,0                         ; check if red button still pressed
-002D   2???           00086                 goto            WaitPress                       ; noise - keep checking
+002B   1C07           00085                 btfss           PORTC,0                         ; check if green button still pressed
+002C   2???           00086                 goto            WaitPress                       ; noise - keep checking
                       00087 
-002E                  00088 GreenRelease
+002D                  00088 GreenRelease
                       00089 
-002E   1807           00090                 btfsc           PORTC,0                         ; check if green button released
-002F   2???           00091                 goto            GreenRelease            ; no - wait
+002D   1807           00090                 btfsc           PORTC,0                         ; check if green button released
+002E   2???           00091                 goto            GreenRelease            ; no - wait
                       00092 
-0030   2???           00093                 call            SwitchDelay             ; let the switch debounce
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  3
-On-Off Control
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
+002F   2???           00093                 call            SwitchDelay             ; let the switch debounce
                       00094 
-0031   1008           00095                 bcf             PORTD,0                         ; turn off main transistor
-0032   1088           00096                 bcf             PORTD,1                         ; turn off second transistor
-0033   01A4           00097                 clrf            Count                           ; clear count           
+0030   1008           00095                 bcf             PORTD,0                         ; turn off main transistor
+0031   1088           00096                 bcf             PORTD,1                         ; turn off second transistor
+0032   01A4           00097                 clrf            Count                           ; clear count           
                       00098 
-0034   0909           00099                 comf            PORTE,W                         ; complement of octal switch bits
-0035   3907           00100                 andlw           B'00000111'                     ; and with 0x07 for mode
-0036   00A5           00101                 movwf           State                           ; store switch in state register
-0037   2???           00102                 goto            ModeSelect                      ; goto ModeSelect
+0033   0909           00099                 comf            PORTE,W                         ; complement of octal switch bits
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  3
+On-Off Control
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0034   3907           00100                 andlw           B'00000111'                     ; and with 0x07 for mode
+0035   00A6           00101                 movwf           State                           ; store switch in state register
+0036   2???           00102                 goto            ModeSelect                      ; goto ModeSelect
                       00103 
-0038                  00104 RedPress
+0037                  00104 RedPress
                       00105         
-0038   1C87           00106                 btfss           PORTC,1                         ; check if red button still pressed
-0039   2???           00107                 goto            WaitPress                       ; noise - keep checking
+0037   1C87           00106                 btfss           PORTC,1                         ; check if red button still pressed
+0038   2???           00107                 goto            WaitPress                       ; noise - keep checking
                       00108 
-003A                  00109 RedRelease
+0039                  00109 RedRelease
                       00110         
-003A   1887           00111                 btfsc           PORTC,1                         ; check if red button released
-003B   2???           00112                 goto            RedRelease                      ; no - keep checking for release
-003C   2???           00113                 call        SwitchDelay         ; let switch debounce
-003D   0008           00114                 return
+0039   1887           00111                 btfsc           PORTC,1                         ; check if red button released
+003A   2???           00112                 goto            RedRelease                      ; no - keep checking for release
+003B   2???           00113                 call        SwitchDelay         ; let switch debounce
+003C   0008           00114                 return
                       00115 
-                      00116 
-003E                  00117 ModeSelect                                                              ; determines what mode octal swi
-                            tch is in
-                      00118                 
-003E   1925           00119                 btfsc           State,2                         ; if bit 2 is one
-003F   2???           00120                 goto            ModeError                       ; error - not 1, 2, or 3
-0040   18A5           00121                 btfsc           State,1                         ; if bit 1 is one
-0041   2???           00122                 goto            ModeSelectA             ; goto ModeSelectA
-0042   1825           00123                 btfsc           State,0                         ; if bit 0 is one
-0043   2???           00124                 goto            Mode1               ; switch is on one, goto Mode1
-0044   2???           00125                 goto            ModeError                       ; otherwise, switch is 0, error
-                      00126 
-0045                  00127 ModeSelectA                                                     ; determines if switch is 2 or 3
-                      00128                 
-0045   1C25           00129                 btfss           State,0                         ; if bit 0 is 0
-0046   2???           00130                 goto            Mode2                           ; switch is set to 2, goto Mode 2
-0047   3004           00131                 movlw           B'00000100'                     ; otherwise, store 0x04 in B register
-0048   00A5           00132                 movwf           State                           ; store in state register
-0049   2???           00133                 goto            Mode3                           ; goto Mode 3
-                      00134 
-                      00135 ;
-                      00136 ;       Mode 1 - turn engage and disengage solenoid with red button
-                      00137 
-004A                  00138 Mode1
-                      00139 
-004A   0825           00140                 movf            State,W                         ; store state in w register
-004B   0086           00141                 movwf           PORTB                           ; display state on Port B LEDs
-004C   2???           00142                 call            WaitPress       
-004D   1408           00143                 bsf                     PORTD,0                         ; turn on transistor
-004E   2???           00144                 call            WaitPress
-004F   1088           00145                 bcf             PORTD,1                         ; turn off transistor
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  4
-On-Off Control
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-0050   0AA4           00146                 incf            Count,F                         ; increment count
-0051   2???           00147                 goto            Mode1                           ; return to start of mode 1             
-                      00148 
-                      00149 ;
-                      00150 ;       Mode 2 - engages solenoid for time based on potentiometer
-0052                  00151 Mode2
+                      00116 ; determines what mode octal switch is in
+                      00117 
+003D                  00118 ModeSelect                                                              
+                      00119                 
+003D   1926           00120                 btfsc           State,2                         ; if bit 2 is one
+003E   2???           00121                 goto            ModeError                       ; error - not 1, 2, or 3
+003F   18A6           00122                 btfsc           State,1                         ; if bit 1 is one
+0040   2???           00123                 goto            ModeSelectA             ; goto ModeSelectA
+0041   1826           00124                 btfsc           State,0                         ; if bit 0 is one
+0042   2???           00125                 goto            Mode1               ; switch is on one, goto Mode1
+0043   2???           00126                 goto            ModeError                       ; otherwise, switch is 0, error
+                      00127 
+0044                  00128 ModeSelectA                                                     ; determines if switch is 2 or 3
+                      00129                 
+0044   1C26           00130                 btfss           State,0                         ; if bit 0 is 0
+0045   2???           00131                 goto            Mode2                           ; switch is set to 2, goto Mode 2
+0046   3004           00132                 movlw           B'00000100'                     ; otherwise, store 0x04 in B register
+0047   00A6           00133                 movwf           State                           ; store in state register
+0048   2???           00134                 goto            Mode3                           ; goto Mode 3
+                      00135 
+                      00136 ;
+                      00137 ;       Mode 1 - turn engage and disengage solenoid with red button
+                      00138 
+0049                  00139 Mode1
+                      00140 
+0049   0826           00141                 movf            State,W                         ; store state in w register
+004A   0086           00142                 movwf           PORTB                           ; display state on Port B LEDs
+004B   2???           00143                 call            WaitPress       
+004C   1408           00144                 bsf                     PORTD,0                         ; turn on transistor
+004D   2???           00145                 call            WaitPress
+004E   1008           00146                 bcf             PORTD,0                         ; turn off transistor
+004F   0AA4           00147                 incf            Count,F                         ; increment count
+0050   2???           00148                 goto            Mode1                           ; return to start of mode 1             
+                      00149 
+                      00150 ;
+                      00151 ;       Mode 2 - engages solenoid for time based on potentiometer
                       00152 
-0052   0825           00153                 movf            State,W                         ; store state in w register
-0053   0086           00154                 movwf           PORTB                           ; display state on Port B LEDs
-0054   2???           00155                 call            WaitPress
-0055   151F           00156                 bsf                     ADCON0,GO                       ; start A/D conversion
-0056   2???           00157                 call            waitLoop                ; wait for A/D to finish
-0057   081E           00158                 movf            ADRES,W                         ; get A/D value
-0058   00A4           00159                 movwf           Count                           ; store in count
-0059   2???           00160                 call            PotenCheck
-005A   1408           00161                 bsf                     PORTD,0                         ; turn on transistor
-005B   2???           00162                 call            SolednoidRetract        ; wait for solenoid to retract 
-005C   2???           00163                 call            SolenoidTime            ; time for solenoid to be on
-                      00164 
-                      00165 ;
-                      00166 ;       Mode 3 - 
-005D                  00167 Mode3
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  4
+On-Off Control
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0051                  00153 Mode2
+                      00154 
+0051   0826           00155                 movf            State,W                         ; store state in w register
+0052   0086           00156                 movwf           PORTB                           ; display state on Port B LEDs
+0053   2???           00157                 call            WaitPress
+0054   151F           00158                 bsf                     ADCON0,GO                       ; start A/D conversion
+0055   2???           00159                 call            waitLoop                ; wait for A/D to finish
+0056   1408           00160                 bsf                     PORTD,0                         ; turn on transistor
+0057   2???           00161                 call            SolednoidEngage         ; wait for solenoid to Engage    
+0058   2???           00162                 call            SolenoidTime            ; time for solenoid to be on
+                      00163 
+                      00164 ;
+                      00165 ;       Mode 3 - engage solenoid, switch transistors, time based on pot
+                      00166 
+0059                  00167 Mode3
                       00168 
-005D   0825           00169                 movf            State,W                         ; store state in w register
-005E   0086           00170                 movwf           PORTB                           ; display state on Port B LEDs
-005F   2???           00171                 call            WaitPress                       ; wait for button pressed
-0060   151F           00172                 bsf             ADCON0,GO                       ; start A/D conversion
-0061   2???           00173                 call            waitLoop                        ; wait for A/D to finish
-0062   081E           00174                 movf            ADRES,W                         ; get A/D value
-0063   00A4           00175                 movwf           Count                           ; store in count
-0064   2???           00176                 call            PotenCheck
-0065   1408           00177                 bsf             PORTD,0
-0066   2???           00178                 call            SolednoidRetract        ; wait for solenoid to engage
-0067   1488           00179                 bsf             PORTD,1                         ; turn on small transistor
-0068   2???           00180                 call            SwitchDelay             ; small delay
-0069   1008           00181                 bcf             PORTD,0                         ; turn off main transistor
-006A   2???           00182                 goto            SolenoidTime3           ; 
-                      00183         
-006B   2???           00184                 goto            Mode3
+0059   0826           00169                 movf            State,W                         ; store state in w register
+005A   0086           00170                 movwf           PORTB                           ; display state on Port B LEDs
+005B   300A           00171                 movlw           D'10'                           ; store 10 in w register, for error chec
+                            king
+005C   00A5           00172                 movwf           Count1                          ; store in count 2 variable
+005D   2???           00173                 call            WaitPress                       ; wait for button pressed
+005E   151F           00174                 bsf             ADCON0,GO                       ; start A/D conversion
+005F   2???           00175                 call            waitLoop                        ; wait for A/D to finish
+0060   081E           00176                 movf            ADRES,W                         ; get A/D value
+0061   00A4           00177                 movwf           Count                           ; store in count
+0062   2???           00178                 call            PotenCheck                      ; error check - make sure not 0
+0063   1408           00179                 bsf             PORTD,0
+0064   2???           00180                 call            SolednoidEngage         ; wait for solenoid to engage
+0065   1488           00181                 bsf             PORTD,1                         ; turn on small transistor
+0066   2???           00182                 call            SwitchDelay             ; small delay
+0067   1008           00183                 bcf             PORTD,0                         ; turn off main transistor
+0068   2???           00184                 goto            SolenoidTime3           ; time for solenoid to be engaged
                       00185 
-006C                  00186 SolenoidTime3
-                      00187         
-006C   2???           00188                 call            timeLoop                        ; delay 1 second
+                      00186 ;       no red button reset timer, cannot be engaged for more than 10 seconds
+                      00187 
+0069                  00188 SolenoidTime3
+                      00189         
+0069   2???           00190                 call            ADTimeLoop              ; delay .25 seconds
+006A   2???           00191                 call            TimeCheck
 Message[305]: Using default destination of 1 (file).
-006D   0BA4           00189                 decfsz          Count                           ; decrement counter     
-006E   2???           00190                 goto            SolenoidTime3           ; loop
-006F   1088           00191                 bcf             PORTD,1                         ; when time done, turn off transistor
-0070   2???           00192                 goto            Mode3
-                      00193 
-0071                  00194 waitLoop
-                      00195                 
-0071   191F           00196                 btfsc           ADCON0,GO                               ; check if A/D finished
-0072   2???           00197                 goto            waitLoop                        ; A/D not finished, wait 
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  5
+006B   0BA4           00192                 decfsz          Count                           ; decrement counter     
+006C   2???           00193                 goto            SolenoidTime3           ; loop
+006D   1088           00194                 bcf             PORTD,1                         ; when time done, turn off transistor
+006E   2???           00195                 goto            Mode3
+                      00196 
+006F                  00197 TimeCheck
+Message[305]: Using default destination of 1 (file).
+006F   0BA5           00198                 decfsz          Count1
+0070   0008           00199                 return
+0071   2???           00200                 goto            ModeError                       
+                      00201 
+                      00202 
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  5
 On-Off Control
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-0073   0008           00198                 return                                                  ; return to mode
-                      00199 
-0074                  00200 PotenCheck                                                              ; checks for error - set to 0
+0072                  00203 waitLoop
+                      00204                 
+0072   191F           00205                 btfsc           ADCON0,GO                       ; check if A/D finished
+0073   2???           00206                 goto            waitLoop                        ; A/D not finished, wait 
+0074   081E           00207                 movf            ADRES,W                         ; get A/D value
+0075   00A4           00208                 movwf           Count
+0076   2???           00209                 call            PotenCheck                      ; make sure not 0
 Message[305]: Using default destination of 1 (file).
-0074   0AA4           00201                 incf            Count                           ; increase count
+0077   0CA4           00210                 rrf             Count                           ; rotate twice right
 Message[305]: Using default destination of 1 (file).
-0075   0BA4           00202                 decfsz          Count                           ; decrease count
-0076   0008           00203                 return
-0077   2???           00204                 goto            ModeError                       ; if count 0, error
-                      00205 
-0078                  00206 SolenoidTime
-                      00207 
-0078   2???           00208                 call            timeLoop                        ; count one second
-0079   1887           00209                 btfsc           PORTC,1                         ; check if red button pressed
-007A   2???           00210                 goto            TimeReset                       ; reset solednoid time
-Message[305]: Using default destination of 1 (file).
-007B   0BA4           00211                 decfsz          Count                           ; decrease count
-007C   2???           00212                 goto            SolenoidTime
-007D   1008           00213                 bcf             PORTD,0                         ; turn off transistor
-007E   0008           00214                 return
+0078   0CA4           00211                 rrf             Count                           ; dividing by 4
+0079   307F           00212                 movlw           B'01111111'             ; mask to remove possible carry bit
+007A   05A4           00213                 andwf           Count,F                         ; store in count 
+007B   0008           00214                 return                                                  ; return to mode
                       00215 
-007F                  00216 TimeReset
-007F   2???           00217                 call            RedPress
-0080   081E           00218                 movf            ADRES,W                         ; get A/D value
-0081   00A4           00219                 movwf           Count                           ; store in count
-0082   2???           00220                 goto            SolenoidTime            ; restart solenoid time
-                      00221 
-0083                  00222 SolednoidRetract
-0083   1D08           00223                 btfss           PORTD,2                         ; check if sensor on
-0084   2???           00224                 goto            SolednoidRetract        ; no - wait
-0085   2???           00225                 call            SwitchDelay             ; small delay
-0086   0008           00226                 return
-                      00227 
-                      00228 ;
-                      00229 ;       Delay for switch to debounce
-                      00230 
-0087                  00231 SwitchDelay
-                      00232 
-0087   3014           00233                 movlw           D'20'                           ; Load with decimal 20
-0088   00A3           00234                 movwf           Temp
-                      00235 
-0089                  00236 delay
-0089   0BA3           00237                 decfsz          Temp,F                          ; 60usec delay
-008A   2???           00238                 goto            delay
-008B   0008           00239                 return
+                      00216 ; Error check - checks if potentiometer is set to 0
+                      00217 
+007C                  00218 PotenCheck                                                              
+                      00219 
+Message[305]: Using default destination of 1 (file).
+007C   0FA4           00220                 incfsz          Count                           ; increase count
+Message[305]: Using default destination of 1 (file).
+007D   0BA4           00221                 decfsz          Count                           ; decrease count
+007E   0008           00222                 return                                                  ; return with count unchanged
+007F   2???           00223                 goto            ModeError                       ; else if count 0, error
+                      00224 
+0080                  00225 SolenoidTime
+                      00226                 
+0080   2???           00227                 call            timeLoop                        ; count 1 second
+0081   1887           00228                 btfsc           PORTC,1                         ; check if red button pressed
+0082   2???           00229                 goto            TimeReset                       ; reset solednoid time
+Message[305]: Using default destination of 1 (file).
+0083   0BA4           00230                 decfsz          Count                           ; decrease count
+0084   2???           00231                 goto            SolenoidTime
+0085   1008           00232                 bcf             PORTD,0                         ; turn off transistor
+0086   2???           00233                 goto            Mode2
+                      00234 
+0087                  00235 TimeReset
+                      00236                 
+0087   151F           00237                 bsf             ADCON0,GO                       ; start A/D conversion
+0088   2???           00238                 call            waitLoop                        ; wait for A/D to finish
+0089   2???           00239                 goto            SolenoidTime            ; restart solenoid time
                       00240 
-                      00241 ;
-                      00242 
-008C                  00243 ModeError
-008C   0825           00244                 movf            State,W                         ; move state to W register
-008D   3808           00245                 iorlw           B'00001000'                     ; and with 08h
-008E   0086           00246                 movwf           PORTB                           ; turn on error LEDs
-008F   2???           00247                 call            timeLoop                        ; time one second
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  6
+008A                  00241 SolednoidEngage 
+008A   1D08           00242                 btfss           PORTD,2                         ; check if sensor on
+008B   2???           00243                 goto            SolednoidEngage         ; no - wait
+008C   0008           00244                 return
+                      00245 
+                      00246 ;
+                      00247 ;       Delay for switch to debounce
+                      00248 
+008D                  00249 SwitchDelay
+                      00250 
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  6
 On-Off Control
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-0090   0186           00248                 clrf            PORTB                           ; clear LEDs
-0091   2???           00249                 call            timeLoop                        ; time one second
-0092   2???           00250                 goto            ModeError                       ; infinite loop
-                      00251 
-                      00252 ;
-                      00253 ;       1 second time loop
-                      00254 
-0093                  00255 timeLoop
-                      00256                 
-0093   3006           00257                 movlw           06h                                     ; get most significant hex value
-                             + 1
-0094   00A0           00258                 movwf           Timer2                          ; store it in count register
-0095   3016           00259                 movlw           16h                                     ; get next most significant hex 
-                            value
-0096   00A1           00260                 movwf           Timer1                          ; store in count register
-0097   3015           00261                 movlw           15h                                     ; get least significant hex valu
-                            e
-0098   00A2           00262                 movwf           Timer0                          ; store in count register
-                      00263 
-0099                  00264 timeDelay
-                      00265 
-0099   0BA2           00266                 decfsz          Timer0,F                        ; Delay loop;
-009A   2???           00267                 goto            timeDelay
-009B   0BA1           00268                 decfsz          Timer1,F                        ; delay loop
-009C   2???           00269                 goto            timeDelay
-009D   0BA0           00270                 decfsz          Timer2,F                        ; delay loop
-009E   2???           00271                 goto            timeDelay
+008D   3014           00251                 movlw           D'20'                           ; Load with decimal 20
+008E   00A3           00252                 movwf           Temp
+                      00253 
+008F                  00254 delay
+008F   0BA3           00255                 decfsz          Temp,F                          ; 60usec delay
+0090   2???           00256                 goto            delay
+0091   0008           00257                 return
+                      00258 
+                      00259 ;
+                      00260 
+0092                  00261 ModeError
+0092   0826           00262                 movf            State,W                         ; move state to W register
+0093   3808           00263                 iorlw           B'00001000'                     ; and with 08h
+0094   0086           00264                 movwf           PORTB                           ; turn on error LEDs
+0095   2???           00265                 call            timeLoop                        ; time one second
+0096   0186           00266                 clrf            PORTB                           ; clear LEDs
+0097   2???           00267                 call            timeLoop                        ; time one second
+0098   2???           00268                 goto            ModeError                       ; infinite loop
+                      00269 
+                      00270 ;
+                      00271 ;       1 second time loop
                       00272 
-009F   0008           00273                 return  
-                      00274 ;
-                      00275 
-                      00276 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                      00277 ;
-                      00278 ;       InitializeAD - initializes and sets up A/D hardware
-                      00279 ;       Select AN0 to AN3 as analog inputs, proper clock period, and read AN0
-                      00280 
-00A0                  00281 initAD 
-                      00282 
-00A0   1683           00283                 bsf                     STATUS,RP0                              ; select register bank 1
-00A1   3004           00284                 movlw           B'00000100'                             ; RA0, RA1, RA3 analog inputs, a
+0099                  00273 timeLoop
+                      00274                 
+0099   3006           00275                 movlw           06h                                     ; get most significant hex value
+                             + 1
+009A   00A0           00276                 movwf           Timer2                          ; store it in count register
+009B   3016           00277                 movlw           16h                                     ; get next most significant hex 
+                            value
+009C   00A1           00278                 movwf           Timer1                          ; store in count register
+009D   3015           00279                 movlw           15h                                     ; get least significant hex valu
+                            e
+009E   00A2           00280                 movwf           Timer0                          ; store in count register
+                      00281 
+009F                  00282 timeDelay
+                      00283 
+009F   0BA2           00284                 decfsz          Timer0,F                        ; Delay loop;
+00A0   2???           00285                 goto            timeDelay
+00A1   0BA1           00286                 decfsz          Timer1,F                        ; delay loop
+00A2   2???           00287                 goto            timeDelay
+00A3   0BA0           00288                 decfsz          Timer2,F                        ; delay loop
+00A4   2???           00289                 goto            timeDelay
+                      00290 
+00A5   0008           00291                 return  
+                      00292 ;
+                      00293 
+00A6                  00294 ADTimeLoop                                                              ; .25 second delay
+                      00295                 
+00A6   3002           00296                 movlw           02h                             ; most significant hex + 1
+00A7   00A0           00297                 movwf           Timer2                          ; store in timer register
+00A8   3045           00298                 movlw           45h                                     ; middle hex value
+00A9   00A1           00299                 movwf           Timer1                          ; store in timer register
+00AA   3085           00300                 movlw           85h                             ; least significant register
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  7
+On-Off Control
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00AB   00A2           00301                 movwf           Timer0
+                      00302 
+00AC                  00303 ADTimeDelay
+                      00304 
+00AC   0BA2           00305                 decfsz          Timer0,F                        ; delay loop
+00AD   2???           00306                 goto            ADTimeDelay
+00AE   0BA1           00307                 decfsz          Timer1,F                        ; delay loop 
+00AF   2???           00308                 goto            ADTimeDelay
+00B0   0BA0           00309                 decfsz          Timer2,F                        ; delay loop
+00B1   2???           00310                 goto            ADTimeDelay
+                      00311 
+00B2   0008           00312                 return
+                      00313 
+                      00314 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      00315 ;
+                      00316 ;       InitializeAD - initializes and sets up A/D hardware
+                      00317 ;       Select AN0 to AN3 as analog inputs, proper clock period, and read AN0
+                      00318 
+00B3                  00319 initAD 
+                      00320 
+00B3   1683           00321                 bsf                     STATUS,RP0                              ; select register bank 1
+00B4   3004           00322                 movlw           B'00000100'                             ; RA0, RA1, RA3 analog inputs, a
                             ll other digital
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-00A2   009F           00285                 movwf           ADCON1                                  ; move to special function A/D r
+00B5   009F           00323                 movwf           ADCON1                                  ; move to special function A/D r
                             egister
-00A3   1283           00286                 bcf                     STATUS,RP0                              ; select register bank 0
-00A4   3041           00287                 movlw           B'01000001'                             ; select 8 * oscillator, analog 
+00B6   1283           00324                 bcf                     STATUS,RP0                              ; select register bank 0
+00B7   3041           00325                 movlw           B'01000001'                             ; select 8 * oscillator, analog 
                             input 0, turn on
-00A5   009F           00288                 movwf           ADCON0                                  ; move to spectial function A/D 
+00B8   009F           00326                 movwf           ADCON0                                  ; move to spectial function A/D 
                             register
-00A6   0008           00289                 return
-                      00290 
-                      00291 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                      00292 
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  7
+00B9   0008           00327                 return
+                      00328 
+                      00329 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      00330 
+                      00331 ;
+                      00332 ;       This routing is a software delay of 10uS required for A/D setup.
+                      00333 ;       At a 4Mhz clock, the loop takes 3Us, so initialize the register Temp with
+                      00334 ;       a value of 3 to give 9us, plus the move etc should result in total time
+                      00335 ;       of > 10uS
+                      00336 
+00BA                  00337 SetupDelay
+                      00338 
+00BA   3003           00339                 movlw           03h                                             ; load Temp with hex 3
+00BB   00A3           00340                 movwf           Temp
+                      00341 
+00BC                  00342 setDelay
+                      00343                 
+00BC   0BA3           00344                 decfsz          Temp,F                                  ; Delay loop
+00BD   2???           00345                 goto            setDelay
+00BE   0008           00346                 return
+                      00347 
+                      00348 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  8
 On-Off Control
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00293 ;
-                      00294 ;       This routing is a software delay of 10uS required for A/D setup.
-                      00295 ;       At a 4Mhz clock, the loop takes 3Us, so initialize the register Temp with
-                      00296 ;       a value of 3 to give 9us, plus the move etc should result in total time
-                      00297 ;       of > 10uS
-                      00298 
-00A7                  00299 SetupDelay
-                      00300 
-00A7   3003           00301                 movlw           03h                                             ; load Temp with hex 3
-00A8   00A3           00302                 movwf           Temp
-                      00303 
-00A9                  00304 setDelay
-                      00305                 
-00A9   0BA3           00306                 decfsz          Temp,F                                  ; Delay loop
-00AA   2???           00307                 goto            setDelay
-00AB   0008           00308                 return
-                      00309 
-                      00310 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                      00311 ;
-                      00312 
-00AC                  00313 isrService
-                      00314 
-00AC   2???           00315                 goto            isrService                      ; error - - stay here
-                      00316 
-                      00317 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                      00318 
-3FB2                  00319                 END
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  8
+                      00349 ;
+                      00350 
+00BF                  00351 isrService
+                      00352 
+00BF   2???           00353                 goto            isrService                      ; error - - stay here
+                      00354 
+                      00355 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                      00356 
+3FB2                  00357                 END
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE  9
 On-Off Control
 
 SYMBOL TABLE
@@ -399,6 +440,8 @@ ADIE                              00000006
 ADIF                              00000006
 ADON                              00000000
 ADRES                             0000001E
+ADTimeDelay                       000000AC
+ADTimeLoop                        000000A6
 BF                                00000000
 BRGH                              00000002
 C                                 00000000
@@ -420,10 +463,8 @@ CCP2M2                            00000002
 CCP2M3                            00000003
 CCP2X                             00000005
 CCP2Y                             00000004
-CCPR1                             00000015
 CCPR1H                            00000016
 CCPR1L                            00000015
-CCPR2                             0000001B
 CCPR2H                            0000001C
 CCPR2L                            0000001B
 CHS0                              00000003
@@ -434,27 +475,26 @@ CKP                               00000004
 CREN                              00000004
 CSRC                              00000007
 Count                             00000024
+Count1                            00000025
 D                                 00000005
 DATA_ADDRESS                      00000005
 DC                                00000001
 D_A                               00000005
-D_NOT_A                           00000005
 F                                 00000001
 FERR                              00000002
 FSR                               00000004
 GIE                               00000007
 GO                                00000002
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE  9
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE 10
 On-Off Control
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
 GO_DONE                           00000002
-GO_NOT_DONE                       00000002
-GreenPress                        0000002C
-GreenPressInitial                 00000029
-GreenRelease                      0000002E
+GreenPress                        0000002B
+GreenPressInitial                 00000028
+GreenRelease                      0000002D
 I2C_DATA                          00000005
 I2C_READ                          00000002
 I2C_START                         00000003
@@ -467,12 +507,12 @@ INTE                              00000004
 INTEDG                            00000006
 INTF                              00000001
 IRP                               00000007
-Mode1                             0000004A
-Mode2                             00000052
-Mode3                             0000005D
-ModeError                         0000008C
-ModeSelect                        0000003E
-ModeSelectA                       00000045
+Mode1                             00000049
+Mode2                             00000051
+Mode3                             00000059
+ModeError                         00000092
+ModeSelect                        0000003D
+ModeSelectA                       00000044
 NOT_A                             00000005
 NOT_ADDRESS                       00000005
 NOT_BO                            00000000
@@ -503,13 +543,13 @@ PIE2                              0000008D
 PIR1                              0000000C
 PIR2                              0000000D
 PMADR                             0000010D
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE 10
+PMADRH                            0000010F
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE 11
 On-Off Control
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
-PMADRH                            0000010F
 PMCON1                            0000018C
 PMDATA                            0000010C
 PMDATH                            0000010E
@@ -526,32 +566,10 @@ PSA                               00000003
 PSPIE                             00000007
 PSPIF                             00000007
 PSPMODE                           00000004
-PotenCheck                        00000074
+PotenCheck                        0000007C
 R                                 00000002
-RA0                               00000000
-RA1                               00000001
-RA2                               00000002
-RA3                               00000003
-RA4                               00000004
-RA5                               00000005
-RB0                               00000000
-RB1                               00000001
-RB2                               00000002
-RB3                               00000003
-RB4                               00000004
-RB5                               00000005
-RB6                               00000006
-RB7                               00000007
 RBIE                              00000003
 RBIF                              00000000
-RC0                               00000000
-RC1                               00000001
-RC2                               00000002
-RC3                               00000003
-RC4                               00000004
-RC5                               00000005
-RC6                               00000006
-RC7                               00000007
 RC8_9                             00000006
 RC9                               00000006
 RCD8                              00000000
@@ -560,32 +578,14 @@ RCIF                              00000005
 RCREG                             0000001A
 RCSTA                             00000018
 RD                                00000000
-RD0                               00000000
-RD1                               00000001
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE 11
-On-Off Control
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
-RD2                               00000002
-RD3                               00000003
-RD4                               00000004
-RD5                               00000005
-RD6                               00000006
-RD7                               00000007
-RE0                               00000000
-RE1                               00000001
-RE2                               00000002
 READ_WRITE                        00000002
 RP0                               00000005
 RP1                               00000006
 RX9                               00000006
 RX9D                              00000000
-R_NOT_W                           00000002
 R_W                               00000002
-RedPress                          00000038
-RedRelease                        0000003A
+RedPress                          00000037
+RedRelease                        00000039
 S                                 00000003
 SMP                               00000007
 SPBRG                             00000099
@@ -603,14 +603,20 @@ SSPM2                             00000002
 SSPM3                             00000003
 SSPOV                             00000006
 SSPSTAT                           00000094
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE 12
+On-Off Control
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 STATUS                            00000003
 SYNC                              00000004
-SetupDelay                        000000A7
-SolednoidRetract                  00000083
-SolenoidTime                      00000078
-SolenoidTime3                     0000006C
-State                             00000025
-SwitchDelay                       00000087
+SetupDelay                        000000BA
+SolednoidEngage                   0000008A
+SolenoidTime                      00000080
+SolenoidTime3                     00000069
+State                             00000026
+SwitchDelay                       0000008D
 T0CS                              00000005
 T0IE                              00000005
 T0IF                              00000002
@@ -621,18 +627,9 @@ T1CON                             00000010
 T1INSYNC                          00000002
 T1OSCEN                           00000003
 T2CKPS0                           00000000
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE 12
-On-Off Control
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 T2CKPS1                           00000001
 T2CON                             00000012
 TMR0                              00000001
-TMR0IE                            00000005
-TMR0IF                            00000002
-TMR1                              0000000E
 TMR1CS                            00000001
 TMR1H                             0000000F
 TMR1IE                            00000000
@@ -648,45 +645,9 @@ TOUTPS1                           00000004
 TOUTPS2                           00000005
 TOUTPS3                           00000006
 TRISA                             00000085
-TRISA0                            00000000
-TRISA1                            00000001
-TRISA2                            00000002
-TRISA3                            00000003
-TRISA4                            00000004
-TRISA5                            00000005
 TRISB                             00000086
-TRISB0                            00000000
-TRISB1                            00000001
-TRISB2                            00000002
-TRISB3                            00000003
-TRISB4                            00000004
-TRISB5                            00000005
-TRISB6                            00000006
-TRISB7                            00000007
 TRISC                             00000087
-TRISC0                            00000000
-TRISC1                            00000001
-TRISC2                            00000002
-TRISC3                            00000003
-TRISC4                            00000004
-TRISC5                            00000005
-TRISC6                            00000006
-TRISC7                            00000007
 TRISD                             00000088
-TRISD0                            00000000
-TRISD1                            00000001
-TRISD2                            00000002
-TRISD3                            00000003
-TRISD4                            00000004
-TRISD5                            00000005
-TRISD6                            00000006
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE 13
-On-Off Control
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
-TRISD7                            00000007
 TRISE                             00000089
 TRISE0                            00000000
 TRISE1                            00000001
@@ -701,63 +662,49 @@ TXIE                              00000004
 TXIF                              00000004
 TXREG                             00000019
 TXSTA                             00000098
+MPASM  5.33                  ONOFFCONTROL.ASM   10-25-2013  16:07:17         PAGE 13
+On-Off Control
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 Temp                              00000023
-TimeReset                         0000007F
+TimeCheck                         0000006F
+TimeReset                         00000087
 Timer0                            00000022
 Timer1                            00000021
 Timer2                            00000020
 UA                                00000001
 W                                 00000000
 WCOL                              00000007
-WaitPress                         00000024
+WaitPress                         00000023
 Z                                 00000002
 _BODEN_OFF                        00003FBF
 _BODEN_ON                         00003FFF
-_BOREN_OFF                        00003FBF
-_BOREN_ON                         00003FFF
-_CONFIG                           00002007
 _CP_ALL                           00003FEF
 _CP_OFF                           00003FFF
-_CP_ON                            00003FEF
-_DEVID1                           00002006
-_FOSC_HS                          00003FFE
-_FOSC_LP                          00003FFC
-_FOSC_RC                          00003FFF
-_FOSC_XT                          00003FFD
 _HS_OSC                           00003FFE
-_IDLOC0                           00002000
-_IDLOC1                           00002001
-_IDLOC2                           00002002
-_IDLOC3                           00002003
 _LP_OSC                           00003FFC
 _PWRTE_OFF                        00003FFF
 _PWRTE_ON                         00003FF7
 _RC_OSC                           00003FFF
-_WDTE_OFF                         00003FFB
-_WDTE_ON                          00003FFF
 _WDT_OFF                          00003FFB
 _WDT_ON                           00003FFF
 _XT_OSC                           00003FFD
 __16F74                           00000001
-MPASM  5.51                  ONOFFCONTROL.ASM   10-22-2013  21:56:23         PAGE 14
-On-Off Control
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 __DEBUG                           1
-delay                             00000089
-initAD                            000000A0
+delay                             0000008F
+initAD                            000000B3
 initPort                          00000010
-isrService                        000000AC
-setDelay                          000000A9
-timeDelay                         00000099
-timeLoop                          00000093
-waitGreenPress                    00000021
-waitLoop                          00000071
+isrService                        000000BF
+setDelay                          000000BC
+timeDelay                         0000009F
+timeLoop                          00000099
+waitGreenPress                    00000020
+waitLoop                          00000072
 
 Errors   :     0
 Warnings :     0 reported,     0 suppressed
-Messages :     9 reported,     0 suppressed
+Messages :    12 reported,     0 suppressed
 
 
