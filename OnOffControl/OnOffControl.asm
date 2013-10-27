@@ -43,6 +43,9 @@
 ; 	Port B LED 4 is turned on along with the LED for the mode the program is in
 ;	and the LEDs flash every second. 
 ;
+;	Note: Time loop only appears to delay .5 seconds, so call 2 in the solenoid modes
+;	for a full second.
+;
 ;	Inputs/outputs
 ;	
 ;	PortD, 0 - Main Transistor Output 
@@ -77,8 +80,10 @@ Timer1	EQU		21h
 Timer0	EQU		22h
 Temp	EQU		23h						; temporary storage variable
 Count	EQU		24h						; count storage variable
-Count1	EQU 	25h
-State	EQU		26h						; cprogam state register
+Count1	EQU 	25h						; count storage - error check
+Count2	EQU		26h						; count storage - error check
+Count3	EQU 	27h						; count storage - error check
+State	EQU		28h						; cprogam state register
 
 
 		ORG		00h						; reset vector
@@ -158,7 +163,7 @@ GreenRelease
 
 		comf		PORTE,W 			; complement of octal switch bits
 		andlw		B'00000111'			; and with 0x07 for mode
-		movwf		State 				; store switch in state register
+		movwf		State 				; store switch in state register		
 		goto 		ModeSelect 			; goto ModeSelect
 
 RedPress
@@ -189,8 +194,6 @@ ModeSelectA 							; determines if switch is 2 or 3
 		
 		btfss		State,0   			; if bit 0 is 0
 		goto		Mode2				; switch is set to 2, goto Mode 2
-		movlw		B'00000100'			; otherwise, store 0x04 in B register
-		movwf		State 				; store in state register
 		goto		Mode3 				; goto Mode 3
 
 ;
@@ -215,11 +218,10 @@ Mode2
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
 		call 		WaitPress
-		call 		SetupDelay 			; make sure A/D conversion is ready
 		bsf			ADCON0,GO 			; start A/D conversion
 		call 		waitLoop     		; wait for A/D to finish
 		bsf			PORTD,0 			; turn on transistor
-		call 		SolednoidEngage		; wait for solenoid to Engage	 
+		call 		SolenoidEngage		; wait for solenoid to Engage	 
 		goto		SolenoidTime 		; time for solenoid to be on
 
 ;
@@ -229,23 +231,28 @@ Mode3
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
-		movlw 		D'10' 				; store 10 in w register, for error checking
+		movlw 		D'10'			    ; 10 in w register, for error checking
 		movwf 		Count1 				; store in count 2 variable
+		movlw 		D'10'			    ; 10 in w register, for error checking
+		movwf 		Count2 				; store in count 2 variable
+		movlw 		D'2'			    ; 10 in w register, for error checking
+		movwf 		Count3 				; store in count 2 variable					
 		call 		WaitPress 			; wait for button pressed
-		call 		SetupDelay 			; make sure A/D conversion is ready
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
 		bsf 		PORTD,0
-		call 		SolednoidEngage		; wait for solenoid to engage
+		call 		SolenoidEngage		; wait for solenoid to engage
 		bsf 		PORTD,1 			; turn on small transistor
 		call		SwitchDelay 		; small delay
 		bcf 		PORTD,0 			; turn off main transistor
-		goto 		SolenoidTime3		; time for solenoid to be engaged
+		goto		SolenoidTime3		; time for solenoid to be engaged
+
 
 
 SolenoidTime
 		
 		call 		timeLoop 			; count 1 second
+		call		timeLoop
 		btfsc 		PORTC,1 			; check if red button pressed
 		goto		TimeReset			; reset solednoid time
 		decfsz 		Count  				; decrease count
@@ -257,19 +264,44 @@ SolenoidTime
 
 SolenoidTime3
 	
-		call	 	timeLoop  			; delay .25 seconds
+		call	 	timeLoop  			; delay 1 second
+		call 		timeLoop
+		btfss 		PORTD,2
+		call 		EngageCheck 				
 		call 		TimeCheck
 		decfsz 		Count 				; decrement counter	
 		goto 		SolenoidTime3 		; loop
 		bcf 	   	PORTD,1 			; when time done, turn off transistor
+		btfss 		PORTD,2
 		goto		Mode3
 
+SolenoidExtend
+		call 		timeLoop
+		call		timeLoop
+		call 		TimeCheck
+		btfss 		PORTD,2
+		goto		Mode3
+		goto		SolenoidExtend
+		
 TimeCheck
+		
 		decfsz		Count1
 		return
-		goto 		ModeError  			
-
-
+		goto 		ModeError
+		
+EngageCheck
+		
+		decfsz 		Count3
+		goto 		Reengage
+		goto		ModeError
+		
+Reengage
+	
+		bsf 		PORTD,0
+		call 		SolenoidEngage
+		bcf			PORTD,0
+		return
+		  			
 waitLoop
 		
 		btfsc 		ADCON0,GO			; check if A/D finished
@@ -292,26 +324,21 @@ PotenCheck
 		return 							; return with count unchanged
 		goto 		ModeError			; else if count 0, error
 
-SolenoidTime
-		
-		call 		timeLoop 			; count 1 second
-		btfsc 		PORTC,1 			; check if red button pressed
-		goto		TimeReset			; reset solednoid time
-		decfsz 		Count  				; decrease count
-		goto 		SolenoidTime
-		bcf 		PORTD,0 			; turn off transistor
-		goto 		Mode2
-
 TimeReset
 		
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
 		goto		SolenoidTime		; restart solenoid time
 
-SolednoidEngage	
-		btfss		PORTD,2 			; check if sensor on
-		goto		SolednoidEngage		; no - wait
+SolenoidEngage	
+		btfsc		PORTD,2 			; check if sensor on
 		return
+		call 		timeLoop 			; call 1 second
+		call 		timeLoop
+		decfsz 		Count2 				; decrease count2 register
+		goto		SolenoidEngage		; not 0 - wait
+		bcf 		PORTD,0 			; turn off main transistor after 10 seconds
+		goto 		ModeError
 
 ;
 ;	Delay for switch to debounce
@@ -339,7 +366,7 @@ ModeError
 		goto 		ModeError 			; infinite loop
 
 ;
-;	1 second time loop
+;	1 second time loop (apppears to only delay .5 seconds)
 
 timeLoop
 		
@@ -377,26 +404,10 @@ initAD
 		movwf		ADCON0					; move to spectial function A/D register
 		return
 
+;
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-;
-;	This routing is a software delay of 10uS required for A/D setup.
-;	At a 4Mhz clock, the loop takes 3Us, so initialize the register Temp with
-;	a value of 3 to give 9us, plus the move etc should result in total time
-; 	of > 10uS
-
-SetupDelay
-
-		movlw		03h						; load Temp with hex 3
-		movwf		Temp
-
-setDelay
-		
-		decfsz		Temp,F 					; Delay loop
-		goto		setDelay
-		return
-
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;
 
 isrService
