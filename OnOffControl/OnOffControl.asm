@@ -4,11 +4,71 @@
 
 ;************************************************************
 ;
-; Insert Description of program
+; 	Tim Cousins tac2155
+; 	Mechatronics, Fall 2015
+;	Case Study 3 - On/Off Control
+;
+; 	This program gives simple control to engage and release a solenoid.
+;	It has three modes. 
+
+;	Mode 1 simply engages the solenoid when the red button is pressed on 
+;	the microchip board, and released when the red button is pressed again.
+;	This mode is used to adjust the solenoid, so that when the photoresistor 
+; 	registers the infared LED in the solenoid test fixture, it  gives a 
+;	positive output when hooked into a comparator on the protoboard
+
+;	Mode 2 engages the solenoid when the red button is pressed, and holds 
+;	it for a length of time determined by the A/D conversion. Altering the
+; 	value of the potentiometer on the board increases the value of the 
+;	A/D output, and therefore increases the time the solenoid is engaged. 
+;	Pressing the red button while the solenoid is engaged resets the time 
+;	it is to be engaged. The solenoid is engaged for a time roughly equal to 
+;	1/4 of the AD output.
+;
+; 	Mode 3 engages the solenoid in the same way as Mode 2. However, after the
+;	solenoid engages, the program turns on the secondary, low current transistor
+;	and turns off the main, high current transistor. The red button does not 
+;	reset the time, and if the solenoid is engaged for more than 10 seconds it
+;	produces an error. For modes 2 and 3, if the potentiometer is set to 0, giving
+;	and AD value of 0, the program produces and error.
+;
+;	The modes are selected with an Octal Switch connected to ports E0, E1, and E2.
+; 	The value for the selected mode is determined by complementing the input
+;	from the octal switch and masking the result with 0x07. The value for mode 
+;	is then stored in the State register. If the state is equal to a value other
+;	than 1, 2, or 3, the program produces an error.
+;
+; 	The Port B LEDs are used to display what mode the program is in, turning on
+;	LEDs 1, 2 or 3 depending on the mode. When an error is produced, the Port B 
+; 	Port B LED 4 is turned on along with the LED for the mode the program is in
+;	and the LEDs flash every second. 
+;
+;	Inputs/outputs
+;	
+;	PortD, 0 - Main Transistor Output 
+;	PortD, 1 - Second Transistor Output 
+;	PortD, 2 - Comparator Input 
+;
+;	PortC, 0 - Green Button Input 
+;	PortC, 1 - Red Button Input 
+;	
+;	PortE, 0-2 - Octal Switch Inputs 
+;
+; 	PortB - Mode LED Outputs
+;
+;	State Register
+;		bit 0 - used for Mode
+;		bit 1 - used for Mode
+;		bit 2 - used for Mode
+;		bit 3 - error bit
+;		bit 4
+;		bit 5
+;		bit 6
+;		bit 7
 ;
 ;************************************************************
 
-	#include <P16F74.INC>				;include file for device
+	#include <P16F74.INC>				; include file for device
 
 ;	Variable declarations
 
@@ -155,11 +215,12 @@ Mode2
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
 		call 		WaitPress
+		call 		SetupDelay 			; make sure A/D conversion is ready
 		bsf			ADCON0,GO 			; start A/D conversion
 		call 		waitLoop     		; wait for A/D to finish
 		bsf			PORTD,0 			; turn on transistor
 		call 		SolednoidEngage		; wait for solenoid to Engage	 
-		call		SolenoidTime 		; time for solenoid to be on
+		goto		SolenoidTime 		; time for solenoid to be on
 
 ;
 ;	Mode 3 - engage solenoid, switch transistors, time based on pot
@@ -171,11 +232,9 @@ Mode3
 		movlw 		D'10' 				; store 10 in w register, for error checking
 		movwf 		Count1 				; store in count 2 variable
 		call 		WaitPress 			; wait for button pressed
+		call 		SetupDelay 			; make sure A/D conversion is ready
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
-		movf 		ADRES,W 			; get A/D value
-		movwf 		Count 				; store in count
-		call 		PotenCheck 			; error check - make sure not 0
 		bsf 		PORTD,0
 		call 		SolednoidEngage		; wait for solenoid to engage
 		bsf 		PORTD,1 			; turn on small transistor
@@ -183,11 +242,22 @@ Mode3
 		bcf 		PORTD,0 			; turn off main transistor
 		goto 		SolenoidTime3		; time for solenoid to be engaged
 
+
+SolenoidTime
+		
+		call 		timeLoop 			; count 1 second
+		btfsc 		PORTC,1 			; check if red button pressed
+		goto		TimeReset			; reset solednoid time
+		decfsz 		Count  				; decrease count
+		goto 		SolenoidTime
+		bcf 		PORTD,0 			; turn off transistor
+		goto 		Mode2
+
 ; 	no red button reset timer, cannot be engaged for more than 10 seconds
 
 SolenoidTime3
 	
-		call	 	ADTimeLoop  		; delay .25 seconds
+		call	 	timeLoop  			; delay .25 seconds
 		call 		TimeCheck
 		decfsz 		Count 				; decrement counter	
 		goto 		SolenoidTime3 		; loop
@@ -209,7 +279,7 @@ waitLoop
 		call		PotenCheck 			; make sure not 0
 		rrf 		Count				; rotate twice right
 		rrf 		Count 				; dividing by 4
-		movlw 		B'01111111' 		; mask to remove possible carry bit
+		movlw 		B'00111111' 		; mask to remove possible carry bit
 		andwf 		Count,F 			; store in count 
 		return							; return to mode
 
@@ -257,6 +327,7 @@ delay
 		return
 
 ;
+;	Infinite Loop if error, only stop with reset
 
 ModeError
 		movf 		State,W 			; move state to W register
@@ -289,27 +360,7 @@ timeDelay
 		goto		timeDelay
 
 		return	
-;
 
-ADTimeLoop 								; .25 second delay
-		
-		movlw 		02h 				; most significant hex + 1
-		movwf 		Timer2 				; store in timer register
-		movlw		45h					; middle hex value
-		movwf 		Timer1 				; store in timer register
-		movlw 		85h 				; least significant register
-		movwf 		Timer0
-
-ADTimeDelay
-
-		decfsz 		Timer0,F 			; delay loop
-		goto 		ADTimeDelay
-		decfsz 		Timer1,F 			; delay loop 
-		goto 		ADTimeDelay
-		decfsz 		Timer2,F 			; delay loop
-		goto 		ADTimeDelay
-
-		return
 
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ;
