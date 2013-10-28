@@ -28,9 +28,12 @@
 ; 	Mode 3 engages the solenoid in the same way as Mode 2. However, after the
 ;	solenoid engages, the program turns on the secondary, low current transistor
 ;	and turns off the main, high current transistor. The red button does not 
-;	reset the time, and if the solenoid is engaged for more than 10 seconds it
-;	produces an error. For modes 2 and 3, if the potentiometer is set to 0, giving
-;	and AD value of 0, the program produces and error.
+;	reset the time. If the solenoid doensn't engage in 10 seconds after hitting
+;	the main transistor is turned on, an error occurs. If the solenoid does not
+;	retract after 10 seconds, an error occuers. If the solenoid disengages before
+;	it is supposed to, it reengages once. If it occurs again, an error occurs.
+;	For modes 2 and 3, if the potentiometer is set to 0, giving an AD value of 0,
+; 	an error occurs. 
 ;
 ;	The modes are selected with an Octal Switch connected to ports E0, E1, and E2.
 ; 	The value for the selected mode is determined by complementing the input
@@ -43,8 +46,9 @@
 ; 	Port B LED 4 is turned on along with the LED for the mode the program is in
 ;	and the LEDs flash every second. 
 ;
-;	Note: Time loop only appears to delay .5 seconds, so call 2 in the solenoid modes
-;	for a full second.
+;	Note: For some microboards, the processor runs twice as fast, so the
+;	time loop only delays .5 seconds, which leads the solenoid to stay engaged
+;	for 1/8 of the A/D output rather than 1/4.
 ;
 ;	Inputs/outputs
 ;	
@@ -221,33 +225,6 @@ Mode2
 		bsf			ADCON0,GO 			; start A/D conversion
 		call 		waitLoop     		; wait for A/D to finish
 		bsf			PORTD,0 			; turn on transistor
-		call 		SolenoidEngage		; wait for solenoid to Engage	 
-		goto		SolenoidTime 		; time for solenoid to be on
-
-;
-;	Mode 3 - engage solenoid, switch transistors, time based on pot
-
-Mode3
-
-		movf 		State,W    			; store state in w register
-		movwf 		PORTB 				; display state on Port B LEDs
-		movlw 		D'10'			    ; 10 in w register, for error checking
-		movwf 		Count1 				; store in count 2 variable
-		movlw 		D'10'			    ; 10 in w register, for error checking
-		movwf 		Count2 				; store in count 2 variable
-		movlw 		D'2'			    ; 10 in w register, for error checking
-		movwf 		Count3 				; store in count 2 variable					
-		call 		WaitPress 			; wait for button pressed
-		bsf 		ADCON0,GO 			; start A/D conversion
-		call		waitLoop			; wait for A/D to finish
-		bsf 		PORTD,0
-		call 		SolenoidEngage		; wait for solenoid to engage
-		bsf 		PORTD,1 			; turn on small transistor
-		call		SwitchDelay 		; small delay
-		bcf 		PORTD,0 			; turn off main transistor
-		goto		SolenoidTime3		; time for solenoid to be engaged
-
-
 
 SolenoidTime
 		
@@ -260,48 +237,12 @@ SolenoidTime
 		bcf 		PORTD,0 			; turn off transistor
 		goto 		Mode2
 
-; 	no red button reset timer, cannot be engaged for more than 10 seconds
+TimeReset
+		
+		bsf 		ADCON0,GO 			; start A/D conversion
+		call		waitLoop			; wait for A/D to finish
+		goto		SolenoidTime		; restart solenoid time
 
-SolenoidTime3
-	
-		call	 	timeLoop  			; delay 1 second
-		call 		timeLoop
-		btfss 		PORTD,2
-		call 		EngageCheck 				
-		call 		TimeCheck
-		decfsz 		Count 				; decrement counter	
-		goto 		SolenoidTime3 		; loop
-		bcf 	   	PORTD,1 			; when time done, turn off transistor
-		btfss 		PORTD,2
-		goto		Mode3
-
-SolenoidExtend
-		call 		timeLoop
-		call		timeLoop
-		call 		TimeCheck
-		btfss 		PORTD,2
-		goto		Mode3
-		goto		SolenoidExtend
-		
-TimeCheck
-		
-		decfsz		Count1
-		return
-		goto 		ModeError
-		
-EngageCheck
-		
-		decfsz 		Count3
-		goto 		Reengage
-		goto		ModeError
-		
-Reengage
-	
-		bsf 		PORTD,0
-		call 		SolenoidEngage
-		bcf			PORTD,0
-		return
-		  			
 waitLoop
 		
 		btfsc 		ADCON0,GO			; check if A/D finished
@@ -324,11 +265,58 @@ PotenCheck
 		return 							; return with count unchanged
 		goto 		ModeError			; else if count 0, error
 
-TimeReset
+
+;
+;	Mode 3 - engage solenoid, switch transistors, time based on pot
+; 	no red button reset timer, cannot be engaged for more than 10 seconds
+
+
+Mode3
+
+		movf 		State,W    			; store state in w register
+		movwf 		PORTB 				; display state on Port B LEDs
+		movlw 		D'10'			    ; 10 in w register, for error checking
+		movwf 		Count1 				; store in count 1 variable
+		movlw 		D'11'			    ; 11 in w register, for error checking
+		movwf 		Count2 				; store in count 2 variable
+		movlw 		D'2'			    ; 10 in w register, for error checking
+		movwf 		Count3 				; store in count 3 variable					
+		call 		WaitPress 			; wait for button pressed
 		
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
-		goto		SolenoidTime		; restart solenoid time
+		bsf 		PORTD,0 			; turn on main transistor
+		call 		SolenoidEngage		; wait for solenoid to engage
+		bsf 		PORTD,1 			; turn on small transistor
+		call		SwitchDelay 		; small delay
+		bcf 		PORTD,0 			; turn off main transistor
+
+SolenoidTime3
+	
+		call	 	timeLoop  			; delay 1 second
+		call 		timeLoop
+		btfss 		PORTD,2
+		call 		EngageCheck 				
+		call 		TimeCheck
+		decfsz 		Count 				; decrement counter	
+		goto 		SolenoidTime3 		; loop
+		bcf 	   	PORTD,1 			; when time done, turn off transistor
+		btfss 		PORTD,2
+		goto		Mode3
+
+SolenoidExtend
+		call 		timeLoop
+		call		timeLoop
+		call 		TimeCheck
+		btfss 		PORTD,2
+		goto		Mode3
+		goto		SolenoidExtend		
+
+TimeCheck
+		
+		decfsz		Count1				; decrease error check count
+		return					
+		goto 		ModeError			; if reaches 0, error
 
 SolenoidEngage	
 		btfsc		PORTD,2 			; check if sensor on
@@ -339,6 +327,19 @@ SolenoidEngage
 		goto		SolenoidEngage		; not 0 - wait
 		bcf 		PORTD,0 			; turn off main transistor after 10 seconds
 		goto 		ModeError
+		
+EngageCheck
+		
+		decfsz 		Count3 				; can only disengage once
+		goto 		Reengage
+		goto		ModeError 			; if count reaches 0, error
+		
+Reengage
+	
+		bsf 		PORTD,0 			; turns on main transistor
+		call 		SolenoidEngage		; waits to engage
+		bcf			PORTD,0 			; turns off main transistor
+		return
 
 ;
 ;	Delay for switch to debounce
@@ -352,18 +353,6 @@ delay
 		decfsz		Temp,F				; 60usec delay
 		goto 		delay
 		return
-
-;
-;	Infinite Loop if error, only stop with reset
-
-ModeError
-		movf 		State,W 			; move state to W register
-		iorlw 		B'00001000'			; and with 08h
-		movwf 		PORTB 				; turn on error LEDs
-		call		timeLoop			; time one second
-		clrf		PORTB				; clear LEDs
-		call		timeLoop 			; time one second
-		goto 		ModeError 			; infinite loop
 
 ;
 ;	1 second time loop (apppears to only delay .5 seconds)
@@ -387,6 +376,19 @@ timeDelay
 		goto		timeDelay
 
 		return	
+
+;
+;	Infinite Loop if error, only stop with reset
+
+ModeError
+		movf 		State,W 			; move state to W register
+		iorlw 		B'00001000'			; and with 08h
+		movwf 		PORTB 				; turn on error LEDs
+		call		timeLoop			; time one second
+		clrf		PORTB				; clear LEDs
+		call		timeLoop 			; time one second
+		goto 		ModeError 			; infinite loop
+
 
 
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
