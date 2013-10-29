@@ -5,7 +5,7 @@
 ;************************************************************
 ;
 ; 	Tim Cousins tac2155
-; 	Mechatronics, Fall 2015
+; 	Mechatronics, Fall 2013
 ;	Case Study 3 - On/Off Control
 ;
 ; 	This program gives simple control to engage and release a solenoid.
@@ -49,6 +49,10 @@
 ;	Note: For some microboards, the processor runs twice as fast, so the
 ;	time loop only delays .5 seconds, which leads the solenoid to stay engaged
 ;	for 1/8 of the A/D output rather than 1/4.
+;	Too keep the error counts in mode 3 at 10 seconds, values of 20 are loaded
+;	into Count and Count1 variables. If the processor ran at normal speed, values
+;	of 10 would be loaded into these variables.
+;	
 ;
 ;	Inputs/outputs
 ;	
@@ -228,8 +232,7 @@ Mode2
 
 SolenoidTime
 		
-		call 		timeLoop 			; count 1 second
-		call		timeLoop
+		call 		timeLoop 			; count 1 second (.5 seconds for fast proc)
 		btfsc 		PORTC,1 			; check if red button pressed
 		goto		TimeReset			; reset solednoid time
 		decfsz 		Count  				; decrease count
@@ -269,17 +272,20 @@ PotenCheck
 ;
 ;	Mode 3 - engage solenoid, switch transistors, time based on pot
 ; 	no red button reset timer, cannot be engaged for more than 10 seconds
+;	Note - processor runs at double speed on board, so values of 20 and 21 are 
+;	loaded into Count1 and Count2 variables. If the microcomputer ran at normal
+;	speed, these values would be 10 and 11 respectively
 
 
 Mode3
 
 		movf 		State,W    			; store state in w register
 		movwf 		PORTB 				; display state on Port B LEDs
-		movlw 		D'10'			    ; 10 in w register, for error checking
+		movlw 		D'20'			    ; for error checking - disengage check
 		movwf 		Count1 				; store in count 1 variable
-		movlw 		D'11'			    ; 11 in w register, for error checking
+		movlw 		D'21'			    ; for error checking - engage timer
 		movwf 		Count2 				; store in count 2 variable
-		movlw 		D'2'			    ; 10 in w register, for error checking
+		movlw 		D'2'			    ; for error checking - early disengage
 		movwf 		Count3 				; store in count 3 variable					
 		call 		WaitPress 			; wait for button pressed
 		
@@ -291,47 +297,47 @@ Mode3
 		call		SwitchDelay 		; small delay
 		bcf 		PORTD,0 			; turn off main transistor
 
-SolenoidTime3
+Mode3Time
 	
-		call	 	timeLoop  			; delay 1 second
-		call 		timeLoop
+		call	 	timeLoop  			; delay 1 second (.5 of fast microcomp)
 		btfss 		PORTD,2
 		call 		EngageCheck 				
 		call 		TimeCheck
 		decfsz 		Count 				; decrement counter	
-		goto 		SolenoidTime3 		; loop
+		goto 		Mode3Time 			; loop
 		bcf 	   	PORTD,1 			; when time done, turn off transistor
 		btfss 		PORTD,2
 		goto		Mode3
 
 SolenoidExtend
-		call 		timeLoop
-		call		timeLoop
-		call 		TimeCheck
-		btfss 		PORTD,2
-		goto		Mode3
-		goto		SolenoidExtend		
+		call 		timeLoop			; delay 1 second (.5 of fast microcomp)
+		call 		TimeCheck			; error checking - engage time
+		btfss 		PORTD,2 			; check if solenoid engaged
+		goto		Mode3 				; no - go to begining of mode
+		goto		SolenoidExtend		; yes - repeat error check loop
+
+;	Error check - cannot stay engaged for more than 10 seconds
 
 TimeCheck
 		
 		decfsz		Count1				; decrease error check count
-		return					
+		return							; if not zero, return
 		goto 		ModeError			; if reaches 0, error
 
 SolenoidEngage	
+
 		btfsc		PORTD,2 			; check if sensor on
-		return
-		call 		timeLoop 			; call 1 second
-		call 		timeLoop
+		return							; yes - return
+		call 		timeLoop 			; no - delay a second (.5 of fast microcomp)
 		decfsz 		Count2 				; decrease count2 register
-		goto		SolenoidEngage		; not 0 - wait
+		goto		SolenoidEngage		; not 0 - loop
 		bcf 		PORTD,0 			; turn off main transistor after 10 seconds
-		goto 		ModeError
+		goto 		ModeError			; goto error
 		
 EngageCheck
 		
 		decfsz 		Count3 				; can only disengage once
-		goto 		Reengage
+		goto 		Reengage 			; if not zero, goto reengage
 		goto		ModeError 			; if count reaches 0, error
 		
 Reengage
