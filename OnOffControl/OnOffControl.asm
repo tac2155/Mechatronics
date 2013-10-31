@@ -5,6 +5,8 @@
 ;************************************************************
 ;
 ; 	Tim Cousins tac2155
+;	Jamie Collier
+;	Chi Yung Fung
 ; 	Mechatronics, Fall 2013
 ;	Case Study 3 - On/Off Control
 ;
@@ -15,7 +17,7 @@
 ;	the microchip board, and released when the red button is pressed again.
 ;	This mode is used to adjust the solenoid, so that when the photoresistor 
 ; 	registers the infared LED in the solenoid test fixture, it  gives a 
-;	positive output when hooked into a comparator on the protoboard
+;	positive output when hooked into a comparator on the protoboard.
 
 ;	Mode 2 engages the solenoid when the red button is pressed, and holds 
 ;	it for a length of time determined by the A/D conversion. Altering the
@@ -49,7 +51,7 @@
 ;	Note: For some microboards, the processor runs twice as fast, so the
 ;	time loop only delays .5 seconds, which leads the solenoid to stay engaged
 ;	for 1/8 of the A/D output rather than 1/4.
-;	Too keep the error counts in mode 3 at 10 seconds, values of 20 are loaded
+;	Too keep the error counts in Mode 3 at 10 seconds, values of 20 are loaded
 ;	into Count and Count1 variables. If the processor ran at normal speed, values
 ;	of 10 would be loaded into these variables.
 ;	
@@ -230,13 +232,13 @@ Mode2
 		call 		waitLoop     		; wait for A/D to finish
 		bsf			PORTD,0 			; turn on transistor
 
-SolenoidTime
+Mode2Time
 		
 		call 		timeLoop 			; count 1 second (.5 seconds for fast proc)
 		btfsc 		PORTC,1 			; check if red button pressed
 		goto		TimeReset			; reset solednoid time
 		decfsz 		Count  				; decrease count
-		goto 		SolenoidTime
+		goto 		Mode2Time
 		bcf 		PORTD,0 			; turn off transistor
 		goto 		Mode2
 
@@ -244,7 +246,9 @@ TimeReset
 		
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
-		goto		SolenoidTime		; restart solenoid time
+		goto		Mode2Time		; restart solenoid time
+
+;	Loop that waits for A/D Conversion to complete and stores the value
 
 waitLoop
 		
