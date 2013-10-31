@@ -32,10 +32,10 @@
 ;	and turns off the main, high current transistor. The red button does not 
 ;	reset the time. If the solenoid doensn't engage in 10 seconds after hitting
 ;	the main transistor is turned on, an error occurs. If the solenoid does not
-;	retract after 10 seconds, an error occuers. If the solenoid disengages before
-;	it is supposed to, it reengages once. If it occurs again, an error occurs.
-;	For modes 2 and 3, if the potentiometer is set to 0, giving an AD value of 0,
-; 	an error occurs. 
+;	retract after 10 seconds of the time running out, an error occuers. If the 
+;	solenoid disengages before it is supposed to, it reengages once and restarts 
+;	the timer. If it occurs again, an error occurs. For modes 2 and 3, if the 
+;	potentiometer is set to 0, giving an AD value of 0, an error occurs. 
 ;
 ;	The modes are selected with an Octal Switch connected to ports E0, E1, and E2.
 ; 	The value for the selected mode is determined by complementing the input
@@ -55,6 +55,14 @@
 ;	into Count and Count1 variables. If the processor ran at normal speed, values
 ;	of 10 would be loaded into these variables.
 ;	
+;	Variables
+;	
+;	Count - stores value of A/D conversion output
+; 	Count1 - used to check if solenoid stays engaged for >10 seconds in mode 3
+;	Count2 - used to check if solenoid engages within 10 seconds of pressing 
+;	red button
+;	Count3 - used to check if solenoid is disengaged twice before time in mode 2
+;	Temp - used in switch debounce delay
 ;
 ;	Inputs/outputs
 ;	
@@ -93,7 +101,7 @@ Count	EQU		24h						; count storage variable
 Count1	EQU 	25h						; count storage - error check
 Count2	EQU		26h						; count storage - error check
 Count3	EQU 	27h						; count storage - error check
-State	EQU		28h						; cprogam state register
+State	EQU		28h						; progam state register
 
 
 		ORG		00h						; reset vector
@@ -217,7 +225,6 @@ Mode1
 		bsf			PORTD,0  			; turn on transistor
 		call		WaitPress
 		bcf 		PORTD,0 			; turn off transistor
-		incf		Count,F 			; increment count
 		goto		Mode1 				; return to start of mode 1		
 
 ;
@@ -246,7 +253,7 @@ TimeReset
 		
 		bsf 		ADCON0,GO 			; start A/D conversion
 		call		waitLoop			; wait for A/D to finish
-		goto		Mode2Time		; restart solenoid time
+		goto		Mode2Time			; restart solenoid time
 
 ;	Loop that waits for A/D Conversion to complete and stores the value
 
@@ -259,8 +266,8 @@ waitLoop
 		call		PotenCheck 			; make sure not 0
 		rrf 		Count				; rotate twice right
 		rrf 		Count 				; dividing by 4
-		movlw 		B'00111111' 		; mask to remove possible carry bit
-		andwf 		Count,F 			; store in count 
+		movlw 		B'00111111' 		; mask to remove possible carry bits
+		andwf 		Count,F 			; store in count variable
 		return							; return to mode
 
 ; Error check - checks if potentiometer is set to 0
@@ -304,18 +311,17 @@ Mode3
 Mode3Time
 	
 		call	 	timeLoop  			; delay 1 second (.5 of fast microcomp)
-		btfss 		PORTD,2
-		call 		EngageCheck 				
-		call 		TimeCheck
+		btfss 		PORTD,2 			; check if solenoid engaged
+		call 		EngageCheck 		; no - call engage time error check		
 		decfsz 		Count 				; decrement counter	
 		goto 		Mode3Time 			; loop
 		bcf 	   	PORTD,1 			; when time done, turn off transistor
-		btfss 		PORTD,2
-		goto		Mode3
+		btfss 		PORTD,2 			; is solenoid engaged
+		goto		Mode3 				; no - go to mode 3 start
 
 SolenoidExtend
-		call 		timeLoop			; delay 1 second (.5 of fast microcomp)
-		call 		TimeCheck			; error checking - engage time
+		call 		timeLoop			; yes - delay 1 second (.5 of fast microcomp)
+		call 		TimeCheck			; error checking - check how long been engaged
 		btfss 		PORTD,2 			; check if solenoid engaged
 		goto		Mode3 				; no - go to begining of mode
 		goto		SolenoidExtend		; yes - repeat error check loop
@@ -345,7 +351,9 @@ EngageCheck
 		goto		ModeError 			; if count reaches 0, error
 		
 Reengage
-	
+		
+		bsf 		ADCON0,GO 			; start A/D conversion
+		call		waitLoop			; wait for A/D to finish	
 		bsf 		PORTD,0 			; turns on main transistor
 		call 		SolenoidEngage		; waits to engage
 		bcf			PORTD,0 			; turns off main transistor
