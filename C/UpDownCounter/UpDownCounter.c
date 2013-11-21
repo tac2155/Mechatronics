@@ -16,7 +16,7 @@ UpDownCounter.c
 
 void	SwitchDelay(void)					//	Waits for Switch to debounce
 {
-	for (i=200; 1 > 0; i--) {}				// 1200 us delay
+	for (char i=200; 1 > 0; i--) {}				// 1200 us delay
 }
 
 void	main(void)

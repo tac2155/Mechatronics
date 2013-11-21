@@ -12,10 +12,8 @@ Header file for Stepper Motor Case Study
 #define	greenButton	RC0
 #define	redButton	RC1
 
-unsigned char	State;
+unsigned char	State;							// Holds state of function
 unsigned long 	Timer;							// Holds value for 1 sec timer
-
-static bit		green;
 
 
 void	main(void);
@@ -23,6 +21,7 @@ void	main(void);
 void	init(void);
 
 void	waitPress(void);
+void	modeSelect(void);
 void	error(void);
 
 //	Modes

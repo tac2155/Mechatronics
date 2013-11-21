@@ -9,83 +9,98 @@ StepperMotor.C
 void	main(void)
 {
 	init();
-	while(!greenButton) {}									// wait for initial press
-	while(greenButton)	{}									// wait for release
-	switchDelay();											// switch debounce
-
-	while(1 != 2)
+	while(!greenButton) {}						// wait for initial press
+	while(greenButton)	{}						// wait for release
+	switchDelay();								// switch debounce
+	while(1 != 2)								// infinite loop
 	{
-		State	= ((~PORTE) & 0b00000111);					// complement and mask
-		PORTB	= State;									// set to state LEDs
-
-		switch(State)
-		{
-			case 1:
-				Mode1();
-				break;
-
-			case 2:
-				Mode2();
-				break;
-
-			case 3:
-				Mode3();
-				break;
-
-			case 4:
-				Mode4();
-				break;
-
-			default:
-				error();
-		}
+		modeSelect();							// select mode
 	}
-}
-													
+}													
 
 void	init(void)
 {
-	PORTB	= 0x00;
+	PORTB	= 0x00;								// clear ports
 	PORTC	= 0x00;
 	PORTD	= 0x00;
 	PORTE	= 0x00;
 	
-	ADCON1	= 0b00000100;
-	TRISC 	= 0xff;
-	TRISB	= 0x00;
-	TRISE	= 0b00000111;
+	ADCON1	= 0b00000100;						// set port E as digital
+	TRISC 	= 0xff;								// Port C all inputs
+	TRISB	= 0b11110000;						// PORTB pins 0-3 out, 4-7 in
+	TRISD	= 0xff;								// Port D all inputs
+	TRISE	= 0b00000111;						// Port E digital inputs
+}
+
+void 	modeSelect(void)
+{
+	State	= ((~PORTE) & 0b00000111);			// complement and mask
+	PORTB	= State;							// set to state LEDs
+
+	switch(State)								// switch case to determine mode
+	{
+		case 1:
+			Mode1();
+			break;
+
+		case 2:
+			Mode2();
+			break;
+
+		case 3:
+			Mode3();
+			break;
+
+		case 4:
+			Mode4();
+			break;
+
+		default:								// if not modes 1-4, error
+			error();
+	}
 }
 
 void	Mode1(void)
 {
-	waitPress();
-	if(green)
+	while(1 =! 2)
 	{
-		break;
+		waitPress();
+		while(!RB5)
+		{
+			PORTD	= 0b00000011;
+			PORTD	= 0b00000110;
+			PORTD	= 0b00001100;
+			PORTD	= 0b00001001;
+		}
+		waitPress();
 	}
-	error();
 }
 
 void	Mode2(void)
 {
 	waitPress();
-	if(green)
+	while(1 =! 2)
 	{
-		break;
+		error();
 	}
-	error();
 }
 
 void	Mode3(void)
 {
 	waitPress();
-	error();
+	while(1 =! 2)
+	{
+		error();
+	}
 }
 
 void	Mode4(void)
 {
 	waitPress();
-	error();
+	while(1 =! 2)
+	{
+		error();
+	}
 }
 
 void	waitPress(void)
@@ -96,15 +111,13 @@ void	waitPress(void)
 		{
 			while(greenButton)	{}
 			switchDelay();
-			green = 1;
-			break;
+			modeSelect();
 		}
 
 		else if(redButton)
 		{
 			while(redButton)	{}
 			switchDelay();
-			green = 0;
 			break;
 		}
 	}
