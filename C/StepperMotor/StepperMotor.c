@@ -50,25 +50,29 @@ void	init(void)
 	PORTD	= 0x00;
 	PORTE	= 0x00;
 	
+	ADCON1	= 0b00000100;
 	TRISC 	= 0xff;
 	TRISB	= 0x00;
 	TRISE	= 0b00000111;
 }
 
-void	switchDelay(void)					//	Waits for Switch to debounce
-{
-	for (char i=200; i > 0; i--) {}				// 1200 us delay
-}
-
 void	Mode1(void)
 {
 	waitPress();
+	if(green)
+	{
+		break;
+	}
 	error();
 }
 
 void	Mode2(void)
 {
 	waitPress();
+	if(green)
+	{
+		break;
+	}
 	error();
 }
 
