@@ -12,26 +12,26 @@ void	main(void)
 	while(!greenButton) {}							// wait for initial press
 	while(greenButton)	{}							// wait for release
 	switchDelay();									// switch debounce
-	while(1 != 2)									// infinite loop
+	while(1 != 42)									// infinite loop
 	{
 		State	= ((~PORTE) & 0b00000111);			// complement and mask
 		PORTB	= State;							// set to state LEDs
 
 		switch(State)								// switch case to determine mode
 		{
-			case 1:
+			case 1:									// if state 1, mode 1
 				Mode1();
 				break;
 
-			case 2:
+			case 2:									// state 2 - mode 2
 				Mode2();
 				break;
 
-			case 3:
+			case 3:									// state 3 - mode 3
 				Mode3();
 				break;
 	
-			case 4:
+			case 4:									// state 4 - mode 4
 				Mode4();
 				break;
 
@@ -58,19 +58,19 @@ void	init(void)
 	TRISD	= 0xff;									// Port D all inputs
 	TRISE	= 0b00000111;							// Port E digital inputs
 
-	synchMotors();
+	synchMotors();									// synch motors to coils
 
-	uniStep	= 4;
-	biStep  = 4;
+	uniStep	= 4;									// set current step to 4 
+	biStep  = 4;									// for unipolar and bipolar motors
 }
 
-void	synchMotors(void)
+void	synchMotors(void)							// syncronizes motors
 {
-	for(uint8_t synch = 1; synch < 5; synch++)
+	for(uint8_t synch = 1; synch < 5; synch++)		// for each of the 4 activations
 	{
-		uniRot(synch);
-		biRot(synch);
-		longTimer();
+		uniRot(synch);								// rotate unipolar
+		biRot(synch);								// rotate bipolar
+		longTimer();								// wait one second
 	}
 }
 
@@ -78,18 +78,21 @@ void	synchMotors(void)
 
 void	motorsHome(uint8_t *uniHome, uint8_t *biHome)
 {
-	while(!RB4)										// unipolar to home, cw
+	while(!RB4 || !RB7)								// while not at horizontal sensors
 	{
-		*uniHome++;
-		uniRot(*uniHome);
-		stepperDelay();
-	}
+		if(!RB4)									// if unipolar not at horizonal sensor
+		{
+			*uniHome++;								// increase step clockwise
+			uniRot(*uniHome);						// rotate unipolar motor
+		}
 
-	while(!RB7)										//	bipolar to home, cw
-	{
-		*biHome++;
-		biRot(*biHome);
-		stepperDelay();
+		if(!RB7)									// if bipolar not at horizontal sensor
+		{												
+			*biHome++;								// increase step clockwise
+			biRot(*biHome);							// rotate bipolar motor
+		}					
+		
+		stepperDelay();								// delay 50 ms
 	}		
 }
 
@@ -98,7 +101,7 @@ void	Mode1(void)
 {
 	motorsHome(&uniStep, &biStep);
 
-	while(1 != 2)
+	while(1 != 42)
 	{
 		waitPress();
 		if(green)
@@ -153,7 +156,7 @@ void	Mode2(void)
 
 	}
 
-	while(1 != 2)
+	while(1 != 42)
 	{
 		while(!RB5 || !RB6)							// while not at sensors
 		{
@@ -180,7 +183,8 @@ void	Mode2(void)
 			{
 				goto modeEnd;
 			}
-		
+		}
+
 		while(!RB4 || !RB7)							// while not at sensors
 		{
 			if(!RB7)								// if bipolar not at sensor
@@ -234,7 +238,7 @@ void	Mode3(void)
 
 	}
 
-	while(1 != 2)
+	while(1 != 42)
 	{
 		while(!RB5 || !RB7)							// while not at sensors
 		{
@@ -261,8 +265,9 @@ void	Mode3(void)
 			{
 				goto modeEnd;
 			}
-		
-		while(!RB4 || !RB6)							// while not at sensores
+		}
+
+		while(!RB4 || !RB6)							// while not at sensors
 		{
 			if(!RB6)								// if bipolar not at sensor
 			{	
@@ -294,44 +299,182 @@ void	Mode3(void)
 
 void	Mode4(void)
 {
-	while(1 != 2)
+	motorsHome(&uniStep, &biStep);
+	waitPress();
+	if(green)
 	{
-		waitPress();
-		if(green)
-		{
-			break;
-		}		
-		error();
-	}
-}
+		goto modeEnd;
 
-void	waitPress(void)
-{
-	while(1 != 2)
+	}
+
+	while(1 != 42)
 	{
-		if(greenButton)
+		while(!RB5 || !RB6)							// while not at sensors
 		{
-			while(greenButton)	{}
-			switchDelay();
-			green 	= 1;
-			break;
+			if(!RB6)								// if bipolar not at sensor
+			{	
+				*biStep++;							// increment step - cw
+				biWave(&biStep);					// rotate bipolar - wavedrive
+			}
+
+			if(!RB5)								// if unipolar not at sensor
+			{
+				*uniStep--;							// decrement step - ccw
+				uniWave(&uniStep);					// rotate unipolar motor
+			}
+			stepperDelay();							// motor delay
 		}
 
-		else if(redButton)
+		if(redButton)								// if red button
 		{
-			while(redButton)	{}
+			while(redButton) {}						// motors stop, wait for release
 			switchDelay();
-			green	= 0;
-			break;
+			waitPress();							// wait for next press
+			if(green)								// green press to switch modes
+			{
+				goto modeEnd;
+			}
+		}
+
+		while(!RB4 || !RB7)							// while not at sensors
+		{
+			if(!RB7)								// if bipolar not at sensor
+			{	
+				*biStep--;							// decrement step - ccw
+				biWave(&biStep);						// rotate bipolar motor
+			}
+
+			if(!RB4)								// if unipolar not at sensor
+			{
+				*uniStep++;							// increment step - cw
+				uniWave(&uniStep);					// rotate unipolar
+			}
+			stepperDelay();							// motor delay
+		}
+
+		if(redButton)								// if red button - stops motors
+		{
+			while(redButton) {}						// wait for release
+			switchDelay();							// switch debounce
+			waitPress();							// wait for button press
+			if(green)								// if green, switch modes
+			{
+				goto modeEnd;
+			}				
+		}
+	}
+	modeEnd: ;										// label to switch modes
+}
+
+void	waitPress(void)								// wait for button press
+{
+	while(1 != 42)									// infinite loop
+	{
+		if(greenButton)								// if green button pressed
+		{
+			while(greenButton)	{}					// wait for release
+			switchDelay();							// switch debounce
+			green 	= 1;							// set green bit hi
+			break;									// break out of infinite loop
+		}
+
+		else if(redButton)							// if red button pressed
+		{
+			while(redButton)	{}					// wait for release
+			switchDelay();							// switch debounce
+			green	= 0;							// set green bit lo
+			break;									// break out of inifinite loop
 		}
 	}
 }
 
 //	Stepper Motor Rotations
 
-//	Unipolar rotation - full step
+//	Unipolar rotation - full step motion
 
-void	uniRot(uint8_t *step)						//	cw if ++
+void	uniRot(uint8_t *step)						// rotating unipolar motor
+{													// paramter is current step of motor
+	if(*step == 0)									// if step is 0,
+	{												// ccw motion
+		*step == 4;									// reset step count to 4
+	}
+
+	else if (*step == 5)							// if step is 5
+	{												// cw motion
+		*step == 1;									// reset step count to 1
+	}
+
+	switch(*step)									// switch case to determine
+	{												// Port D 0-3 determine unipolar
+		case 1:										// 1001
+			RD0	= 1;								
+			RD1	= 0;
+			RD2	= 0;
+			RD3 = 1;
+			break;
+
+		case 2:										// 0011
+			RD0	= 1;
+			RD1	= 1;
+			RD2	= 0;
+			RD3 = 0;
+			break;
+
+		 case 3:									// 0110
+			RD0	= 0;
+			RD1	= 1;
+			RD2	= 1;
+			RD3 = 0;
+			break;
+
+		case 4:										// 1100
+			RD0	= 0;
+			RD1	= 0;
+			RD2	= 1;
+			RD3 = 1;
+			break;
+	}
+}
+
+//	Bipolar rotation - full step motion
+
+void	biRot(uint8_t *step)						// rotating bipolar motar		
+{													// parameter is current step of motor
+	if(*step == 0)									// if step is 0,
+	{												// ccw motion
+		*step == 4;									// reset step count to 4
+	}
+
+	else if (*step == 5)							// if step is 5
+	{												// cw motion
+		*step == 1;									// reset step count to 1
+	}
+
+	switch(*step)									// full step - Ia and Ib = 0
+	{												// Port D 4-7 determine bipolar
+		case 1:										// 0100
+			RD4	= 0;
+			RD6	= 1;
+			break;
+
+		case 2:										// 0000
+			RD4	= 0;
+			RD6	= 0;	
+			break;
+
+		 case 3:									// 1000
+			RD4	= 1;
+			RD6	= 0;
+			break;
+
+		case 4:										// 1010
+			RD4	= 1;
+			RD6	= 1;
+			break;
+	}	
+}
+/*
+void	uniWave(uint8_t *step)						//	cw if ++
 {
 	stepReset:
 	switch(*step)
@@ -340,11 +483,11 @@ void	uniRot(uint8_t *step)						//	cw if ++
 			RD0	= 1;
 			RD1	= 0;
 			RD2	= 0;
-			RD3 = 1;
+			RD3 = 0;
 			break;
 
 		case 2:
-			RD0	= 1;
+			RD0	= 0;
 			RD1	= 1;
 			RD2	= 0;
 			RD3 = 0;
@@ -352,7 +495,7 @@ void	uniRot(uint8_t *step)						//	cw if ++
 
 		 case 3:
 			RD0	= 0;
-			RD1	= 1;
+			RD1	= 0;
 			RD2	= 1;
 			RD3 = 0;
 			break;
@@ -360,7 +503,7 @@ void	uniRot(uint8_t *step)						//	cw if ++
 		case 4:
 			RD0	= 0;
 			RD1	= 0;
-			RD2	= 1;
+			RD2	= 0;
 			RD3 = 1;
 			break;
 		case 5:
@@ -374,40 +517,76 @@ void	uniRot(uint8_t *step)						//	cw if ++
 
 //	Bipolar rotation - full step
 
-void	biRot(uint8_t *step)						//	cw if ++		
+void	biWave(uint8_t *step)						//	cw if ++		
 {
 	stepReset:	
 	switch(*step)
 	{
 		case 1:										//	step through phases
-			RD4	= 0;
+			RD4	= 1;
+			RD5 = 0;
 			RD6	= 1;
+			RD7 = 0;
 			break;
 
 		case 2:
 			RD4	= 0;
-			RD6	= 0;	
+			RD5 = 1;
+			RD6	= 1;
+			RD7 = 0;	
 			break;
 
 		 case 3:
-			RD4	= 1;
-			RD6	= 0;
+			RD4	= 0;
+			RD5 = 0;
+			RD6	= 1;
+			RD7 = 0;
 			break;
 
 		case 4:
-			RD4	= 1;
-			RD6	= 1;
+			RD4	= 0;
+			RD5 = 0;
+			RD6	= 0;
+			RD7 = 1;
 			break;
 
 		case 5:
+			RD4	= 0;
+			RD5 = 0;
+			RD6	= 0;
+			RD7 = 0;
+			break;
+		
+		case 6:
+			RD4	= 1;
+			RD5 = 1;
+			RD6	= 0;
+			RD7 = 0;
+			break;
+
+		case 7:
+			RD4	= 1;
+			RD5 = 0;
+			RD6	= 0;
+			RD7 = 0;
+			break;
+
+		case 8:
+			RD4	= 1;
+			RD5 = 0;
+			RD6	= 1;
+			RD7 = 1;
+			break;
+		
+		case 9:
 			*step = 1;
 			goto stepReset;
 		case 0:
-			*step = 4;
+			*step = 8;
 			goto stepReset;
 	}	
 }
-
+*/
 //	Timers
 
 void	longTimer(void)						
@@ -433,7 +612,7 @@ void	error()
 {
 	PORTD =	0x00;									//	Turn off motors
 	State |= (1 << 3);								// 	set error LED high
-	while(1 != 2)									//	Infinite loop
+	while(1 != 42)									//	Infinite loop
 	{
 		PORTB = State;								//	Flash mode error every second
 		longTimer();
