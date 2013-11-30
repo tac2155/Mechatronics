@@ -12,16 +12,25 @@ Header file for Stepper Motor Case Study
 #define	greenButton	RC0
 #define	redButton	RC1
 
-unsigned char	State;							// Holds state of function
+
+typedef	unsigned char	uint8_t;
+
+uint8_t			State;							// Holds state of function
 unsigned long 	Timer;							// Holds value for 1 sec timer
 
+uint8_t 		uniStep;
+uint8_t 		biStep;
+
+static bit 		green;
 
 void	main(void);
 
+//	Initiation
 void	init(void);
+void	synchMotors(void);
 
+//	Functions
 void	waitPress(void);
-void	modeSelect(void);
 void	error(void);
 
 //	Modes
@@ -30,6 +39,12 @@ void	Mode2(void);
 void	Mode3(void);
 void 	Mode4(void);
 
+//	Rotation
+void	uniRot(void);
+void	biRot(void);
+void	motorsHome(void);
+
 //	Timers
 void	switchDelay(void);
+void 	stepperDelay(void);
 void	longTimer(void);
