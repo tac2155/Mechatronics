@@ -9,8 +9,15 @@ Header file for Stepper Motor Case Study
 
 //	Variable defines
 
-#define	greenButton	RC0
-#define	redButton	RC1
+// Define Button Presses
+#define	greenButton	RC0							// green button Port C, pin 0
+#define	redButton	RC1							// red button Port C, pin 1
+
+// Define Sensor Ports
+#define uniHor		RB4							// unipolar horizontal sensor Port B, pin 4
+#define uniVer		RB5							// unipolar vertical sensor Port B, pin 5
+#define biVer		RB6							// bipolar horizontal Sensor Port B, pin 6
+#define biHor		RB7							// bipolar vertical sensore Port B, pin 7
 
 
 typedef	unsigned char	uint8_t;
@@ -40,9 +47,15 @@ void	Mode3(void);
 void 	Mode4(void);
 
 //	Rotation
-void	uniRot(uint8_t*);
-void	biRot(uint8_t*);
-void	motorsHome(uint8_t*, uint8_t*);
+uint8_t	    uniRot(uint8_t);
+uint8_t 	biRot(uint8_t);
+uint8_t		uniHome(uint8_t);
+uint8_t		biHome(uint8_t);
+
+//	Wave Step
+uint8_t		uniWave(uint8_t);
+uint8_t 	biWaveF(uint8_t);
+uint8_t 	biWaveR(uint8_t);
  
 //	Timers
 void	switchDelay(void);
