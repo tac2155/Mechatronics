@@ -43,7 +43,7 @@ they stop and wait for a button press. If the red button is pressed, the
 pattern continues. If the green button is pressed, the program goes to the 
 mode indicated by the octal switch.
 
-Mode 2
+Mode 3
 Starts with unipolar in horizontal position and the bipolar in vertical position.
 Pressing red button will make the motors rotate 270 degrees to the other sensor. 
 Once both reach their respective sensors, the motors rotate back to the opposite
@@ -172,7 +172,7 @@ void	Mode1(void)
 
 	while(!green)									// infinite loop if green
 	{												// button not pressed
-		if(uniHor && biHor)							// if both at horizontal
+		if(!uniVer && !biVer)							// if both at horizontal
 		{
 			while(!uniVer)							// while unipolar not at vertical
 			{
@@ -181,7 +181,7 @@ void	Mode1(void)
 				stepperDelay();						// delay for stepper motor
 			}
 		}
-		else if(uniVer && biHor)					// if unipolar vertical and 
+		else if(!uniHor && !biVer)					// if unipolar vertical and 
 		{											// bipolar horizontal
 			while(!biVer)							// while bipolar not at vertical
 			{			
@@ -191,7 +191,7 @@ void	Mode1(void)
 			}
 		}
 
-		else if(uniVer && biVer)					// if both at vertical
+		else if(!uniHor && !biHor)					// if both at vertical
 		{
 			while(!uniHor)							// while unipolar not at horizontal
 			{
@@ -201,7 +201,7 @@ void	Mode1(void)
 			}
 		}
 
-		else if(uniHor && biVer)					// if unipolar at horizontal and 
+		else if(!uniVer && !biHor)					// if unipolar at horizontal and 
 		{											// bipolar vertical
 			while(!biHor)							// while bipolar not at horizontal
 			{
@@ -564,8 +564,8 @@ uint8_t	uniWave(uint8_t step)						//	cw if ++
 
 //	Bipolar rotation - wave drive
 
-/* 	Bipolar motor takes 8 steps to complete rotation, and the forward is opposite
-	of the reverse
+/* 	Bipolar motor takes 8 steps to complete rotation, and the forward is not 
+	simply the opposite of the reverse.
 */
 
 uint8_t	biWaveF(uint8_t step)						//	cw if ++		

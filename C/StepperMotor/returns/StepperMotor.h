@@ -39,7 +39,7 @@ static uint8_t 		uniStep;
 static uint8_t 		biStep;
 
 //	static bit used to detmerine if green button was presed
-static bit 		green;
+static bit 			green;
 
 
 // 	Function Declarations
