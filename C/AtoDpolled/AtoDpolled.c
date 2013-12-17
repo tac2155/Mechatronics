@@ -13,7 +13,7 @@ AtoDpolled.c
 
 void	SetupDelay(void)					// delay loop
 {
-	for (Temp = 1; Temp > 0; Temp--) {}		// 17 us delay
+	for (uint8_t Temp = 1; Temp > 0; Temp--) {}		// 17 us delay
 }
 
 void	initAtoD(void)						// initialize A/D
