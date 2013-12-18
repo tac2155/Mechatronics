@@ -114,7 +114,7 @@ void	init(void)
 	ADCON1	= 0b00000100;							// set port E as digital
 	TRISC 	= 0xff;									// Port C all inputs
 	TRISB	= 0b11110000;							// PORTB pins 0-3 out, 4-7 in
-	TRISD	= 0x00;									// Port D all inputs
+	TRISD	= 0x00;									// Port D all outputs
 	TRISE	= 0b00000111;							// Port E digital inputs
 
 	synchMotors();									// synch motors to coils

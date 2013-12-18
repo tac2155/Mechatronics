@@ -14,7 +14,6 @@ void main(void)
 {
 	init();
 	
-
 	while(!blackButton) {} 					// wait for button press
 	while(blackButton)  {}					// wait for release
 	delay(200);								// delay for switch to debounce, 1200us
@@ -56,7 +55,6 @@ void	init(void)
 
 	readings  = 0;
 	speed	  = 0;
-	desVel	  = 140;
 }
 
 void	initISR(void)						// initialize interrupts				
@@ -68,9 +66,9 @@ void	initISR(void)						// initialize interrupts
 
 void	initAtoD(void)						// initialize A/D
 {
-	ADCON1	= 0b00000100					// RA0, RA1, RA3 analog inputs
-	ADCON0	= 0b01001001					// select 8* oscillator, analog input 1, turn on 
-	AtoDDelay();							// small delay
+	ADCON1	= 0b00000100;					// RA0, RA1, RA3 analog inputs
+	ADCON0	= 0b01001001;					// select 8* oscillator, analog input 1, turn on 
+	delay(1);							// small delay
 }
 
 void	initPWM(void)
@@ -83,9 +81,10 @@ void	initPWM(void)
 void	refVoltage(void)
 {
 	eddyCount = 0;
+	desVel	  = 150;
 
 	dir = 1;								// Motor cw
-	CCPR1L 	 = desVel;							// set reference voltage at 140
+	CCPR1L 	 = desVel;						// set reference voltage at 140
 	PWM 	 = 1;							// start PWM
 
 	while(eddyCount < 4)
@@ -104,7 +103,8 @@ void	refVoltage(void)
 void	motorControl(void)
 {
 	dir 	= 1;
-	CCPR1L	= 140;
+	motorBrake = 0;
+	CCPR1L	= desVel;
 	PWM 	= 1;	
 
 	motorRef	= speedRead();
@@ -117,6 +117,10 @@ void	motorControl(void)
 		{
 			CCPR1L = 255;
 		}
+		else if((error * kp) < 0)
+		{
+			CCPR1L = 0;
+		}		
 		else
 		{
 			CCPR1L = (error * kp);
@@ -145,7 +149,7 @@ void	motorControl(void)
 	}
 	count = 0;
 
-	while(motorRef > 140)
+	while(desVel > 140)
 	{
 		if((error * kp) > 255)
 		{
@@ -184,35 +188,35 @@ void	brake(void)
 
 uint8_t	speedRead(void)
 {
+	uint8_t vel;
 	ADGO = 1;
 	while(readings <= 64) {}
-	vel = tachSpeed / 64;
+	vel = tachSpeed;
+	readings = 0;
 	return vel;
 }
 
-
 void	delay(uint8_t t)							//	delay for loop
 {
-	for (uint8_t i=t; i > 0; i--) {}				
+	uint8_t i;
+	for (i = t; i > 0; i--) {}				
 }
 
 void	longTimer(void)						
 {
-	for(timer = 38461; Timer > 0; Timer--) {}		// 1s delay loop
+	for(timer = 38461; timer > 0; timer--) {}		// 1s delay loop
 
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void interrupt	ISR_AtoD(void)
+void interrupt	isr(void)
 {
+	ADIF	= 0;
 	if(readings <= 64)
 	{
 		readings++;
-		tachSpeed += ADRES;
+		tachSpeed = (tachSpeed + ADRES)/ readings;
 		ADGO = 1;
 	}
-	ADIF	= 0;
 }
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -46,16 +46,15 @@ static uint8_t speed;
 static uint8_t motorRef;
 static uint8_t desVel;
 
-static uint8_t error;
+static int error;
+uint16_t tachSpeed;
 
 //	Gains
-static uint8_t kp; 	= 15;
-static uint8_t kd;	= 5;
-static double  ki;	= 0.005;
+static uint8_t kp;
+static uint8_t kd;
+static double  ki;
 
 //	Function Declarations
-
-void	main(void);
 
 void	motorControl(void);
 void	brake(void);
@@ -70,8 +69,5 @@ void	initISR(void);
 void	refVoltage(void);
 
 //	Delays
-void	delay(void);
+void	delay(uint8_t);
 void	longTimer(void);
-
-
-void	interrupt ISR_AtoD(void);
