@@ -18,7 +18,6 @@ for code to compile easier.
 //	Pin Defines
 
 //	Port A
-#define tach 		RA1
 #define blackButton	RA4
 
 //	Port C
@@ -36,7 +35,8 @@ typedef	unsigned char	uint8_t;
 typedef	unsigned int	uint16_t;
 
 //	Variables
-unsigned long  timer;							// Holds value for 1 sec timer
+unsigned long  timer;					// Holds value for 1 sec timer
+uint8_t i;			
 
 static uint8_t eddyCount;		
 static uint16_t	count;
@@ -47,18 +47,20 @@ static uint8_t motorRef;
 static uint8_t desVel;
 
 static int error;
-uint16_t tachSpeed;
+static int errorP;
+static uint16_t tachSpeed;
 
 //	Gains
 static uint8_t kp;
 static uint8_t kd;
 static double  ki;
+static uint8_t bias;
 
 //	Function Declarations
 
-void	motorControl(void);
+void	motorControl(uint8_t, uint8_t, double, uint8_t);
 void	brake(void);
-uint8_t	speedRead(void);
+void	speedRead(void);
 
 //	Initialization
 

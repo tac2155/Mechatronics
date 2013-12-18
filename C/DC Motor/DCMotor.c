@@ -20,6 +20,27 @@ void main(void)
 	
 	motorControl();
 
+	mode = (MSBHex << 1) | (LSBHex);
+	
+	switch(mode)
+	{
+		case 0:
+			motorControl(kp, 0, 0, 0);
+			break;
+
+		case 1:
+			motorControl(kp, 0, 0, bias);
+			break;
+
+		case 2:
+			motorControl(kp, kd, 0, 0);
+			break;
+
+		case 3:
+			motorControl(kp, kd, ki, 0);
+			break;
+	}
+
 	while(1 != 42)
 	{
 		PORTB = 0xff;						//	Flash mode error every second
@@ -68,7 +89,7 @@ void	initAtoD(void)						// initialize A/D
 {
 	ADCON1	= 0b00000100;					// RA0, RA1, RA3 analog inputs
 	ADCON0	= 0b01001001;					// select 8* oscillator, analog input 1, turn on 
-	delay(1);							// small delay
+	delay(1);								// small delay
 }
 
 void	initPWM(void)
@@ -82,6 +103,7 @@ void	refVoltage(void)
 {
 	eddyCount = 0;
 	desVel	  = 150;
+	bias = desVel;
 
 	dir = 1;								// Motor cw
 	CCPR1L 	 = desVel;						// set reference voltage at 140
@@ -100,30 +122,33 @@ void	refVoltage(void)
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-void	motorControl(void)
+void	motorControl(uint8_t kP, uint8_t kD, uint8_t kI, uint8_t b)
 {
 	dir 	= 1;
 	motorBrake = 0;
 	CCPR1L	= desVel;
 	PWM 	= 1;	
 
-	motorRef	= speedRead();
+	tachRead();
+	errorP = 0;
 	error = desVel - motorRef;
 	PORTB = error;
 
-	while(motorRef < 190)
+	while(desVel < 190)
 	{
-		if((error * kp) > 255)
+		input = error*kP + (error - errorP)*kD + (error + errorP)*kI + b;
+		
+		if(input > 255)
 		{
 			CCPR1L = 255;
 		}
-		else if((error * kp) < 0)
+		else if(input < 0)
 		{
 			CCPR1L = 0;
 		}		
 		else
 		{
-			CCPR1L = (error * kp);
+			CCPR1L = input;
 		}
 
 		while(count < 100)
@@ -133,35 +158,36 @@ void	motorControl(void)
 				count++;
 			}
 		}
-		motorRef = speedRead();
+		count = 0;
+
+		tachRead();
+		errorP = error;
 		error = desVel - motorRef;
 		desVel++;
 		PORTB = error;
 	}
-	count = 0;
 	
-	while(count < 6000)
+	for(count = 0; count < 6000; count++)
 	{
-		if(enc)
-		{
-			count++;
-		}
+		while(!enc) {}
 	}
+
 	count = 0;
 
 	while(desVel > 140)
 	{
-		if((error * kp) > 255)
+		input = error*kP + (error - errorP)*kD + (error + errorP)*kI + b;
+		if(input > 255)
 		{
 			CCPR1L = 255;
 		}
-		else if((error * kp) < 0)
+		else if(input < 0)
 		{
 			CCPR1L = 0;
 		}
 		else
 		{
-			CCPR1L = (error * kp);
+			CCPR1L = input;
 		}
 
 		while(count < 100)
@@ -171,7 +197,10 @@ void	motorControl(void)
 				count++;
 			}
 		}
-		motorRef = speedRead();
+		count = 0;
+
+		tachRead();
+		errorP = error;
 		error = desVel - motorRef;
 		desVel--;
 		PORTB = error;
@@ -186,15 +215,14 @@ void	brake(void)
 	CCPR1L = 0x00;
 }
 
-uint8_t	speedRead(void)
+void	tachRead(void)
 {
-	uint8_t vel;
 	ADGO = 1;
-	while(readings <= 64) {}
-	vel = tachSpeed;
+	while(readings < 64) {}
+	motorRef = tachSpeed / 64;
 	readings = 0;
-	return vel;
 }
+
 
 void	delay(uint8_t t)							//	delay for loop
 {
@@ -205,7 +233,6 @@ void	delay(uint8_t t)							//	delay for loop
 void	longTimer(void)						
 {
 	for(timer = 38461; timer > 0; timer--) {}		// 1s delay loop
-
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,10 +240,11 @@ void	longTimer(void)
 void interrupt	isr(void)
 {
 	ADIF	= 0;
-	if(readings <= 64)
+	if(readings < 64)
 	{
 		readings++;
-		tachSpeed = (tachSpeed + ADRES)/ readings;
+		tachSpeed = tachSpeed + ADRES;
+		delay(1);
 		ADGO = 1;
 	}
 }
