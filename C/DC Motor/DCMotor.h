@@ -38,17 +38,21 @@ typedef	unsigned int	uint16_t;
 unsigned long  timer;					// Holds value for 1 sec timer
 uint8_t i;			
 
+uint8_t mode;
+
 static uint8_t eddyCount;		
 static uint16_t	count;
-
 static uint8_t readings;			
-static uint8_t speed;
-static uint8_t motorRef;
-static uint8_t desVel;
 
-static int error;
-static int errorP;
+//	Errors and Controller Output
+int error;
+int errorP;
+int input;
+
+static uint8_t desVel;
+static uint8_t speed;
 static uint16_t tachSpeed;
+
 
 //	Gains
 static uint8_t kp;
@@ -60,7 +64,6 @@ static uint8_t bias;
 
 void	motorControl(uint8_t, uint8_t, double, uint8_t);
 void	brake(void);
-void	speedRead(void);
 
 //	Initialization
 
