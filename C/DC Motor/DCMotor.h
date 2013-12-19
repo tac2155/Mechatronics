@@ -45,24 +45,26 @@ static uint16_t	count;
 static uint8_t readings;			
 
 //	Errors and Controller Output
-int error;
-int errorP;
+static int error;
+static int errorD;
+static int errorI;
 int input;
 
 static uint8_t desVel;
-static uint8_t speed;
+static uint16_t speed;
 static uint16_t tachSpeed;
-
+uint8_t velRef;
 
 //	Gains
 static uint8_t kp;
 static uint8_t kd;
-static double  ki;
+static float  ki;
 static uint8_t bias;
 
 //	Function Declarations
 
-void	motorControl(uint8_t, uint8_t, double, uint8_t);
+void	motorControl(uint8_t, uint8_t, float, uint8_t);
+void 	setPWM(uint8_t, uint8_t, float, uint8_t);
 void	brake(void);
 
 //	Initialization

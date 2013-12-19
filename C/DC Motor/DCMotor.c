@@ -17,9 +17,13 @@ void main(void)
 	while(!blackButton) {} 					// wait for button press
 	while(blackButton)  {}					// wait for release
 	delay(200);	
-	
-	motorControl(kp, 0, 0, 0);							// delay for switch to debounce, 1200us
-/*
+
+	kp  	= 15;
+	kd 		= 5;
+	ki		= 0.005;
+		
+	//motorControl(kp, 0, 0, 0);							// delay for switch to debounce, 1200us
+
 	if(MSBHex)
 	{
 		if(LSBHex)
@@ -58,7 +62,7 @@ void main(void)
 			motorControl(kp, kd, ki, 0);
 			break;
 	}
-*/
+
 	while(1 != 42)
 	{
 		PORTB = 0xff;						//	Flash mode error every second
@@ -88,10 +92,6 @@ void	init(void)
 
 	refVoltage();
 
-	kp  	= 15;
-	kd 		= 5;
-	ki		= 0.005;
-
 	readings  = 0;
 	speed	  = 0;
 }
@@ -114,21 +114,22 @@ void	initPWM(void)
 {
 	CCP1CON	= 0b00001100;					// Set PWM in CCP1
 	PR2		= 0xff;							// set PR2
-	T2CON 	= 0b00000101;					// set up Timer 2
+	T2CON 	= 0b00000100;					// set up Timer 2
 }
 
 void	refVoltage(void)
 {
-	desVel	= 150;
-	bias 	= desVel;
+	velRef	= 160;
+	bias 	= velRef;
 
 	dir 	= 1;							// Motor cw
-	CCPR1L 	= desVel;						// set reference voltage at 150
+	CCPR1L 	= velRef;						// set reference voltage at 160
 	PWM 	= 1;							// start PWM
 
 	for (eddyCount = 0; eddyCount < 4; eddyCount++)
 	{
 		while(!eddy) {}
+		while(eddy)  {}
 	}
 
 	brake();
@@ -136,75 +137,78 @@ void	refVoltage(void)
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-void	motorControl(uint8_t kP, uint8_t kD, double kI, uint8_t b)
+void	motorControl(uint8_t kP, uint8_t kD, float kI, uint8_t b)
 {
-	dir 	= 1;
-	motorBrake = 0;
-	CCPR1L	= 150;
-	PWM 	= 1;
-
-	ADGO 	= 1;
-	while(readings < 64) {}
-	readings = 0;
-
-	velRef	= speed;	
-	
-	errorP = 0;
-	error = velRef - speed;
-	PORTB = error;
+	dir 		= 1;
+	motorBrake 	= 0;
+	CCPR1L		= velRef;
+	ADGO 		= 1;
 
 	while(velRef < 190)
 	{
-		delay(1);
-		ADGO = 1;
-		input = error*kP + (error - errorP)*kD + (error + errorP)*kI + b;
-		
-		if(input > 255)
-		{
-			CCPR1L = 255;
-		}
-		else if(input < 0)
-		{
-			CCPR1L = 0;
-		}		
-		else if(input == 0)
-		{
-			CCPR1L = velRef;
-		}
-
-		else
-		{
-			CCPR1L = input;
-		}
-
 		for(count = 0; count < 100; count++)
 		{
-			while(!enc) {}
+			while(!enc) 
+			{
+				setPWM(kP, kD, kI, b);
+			}
+
+			while(enc) 
+			{
+				setPWM(kP, kD, kI, b);
+			}
 		}
 
-		while(readings < 64) {}
-		readings = 0;
-
-		errorP = error;
-		error = velRef - speed;
-
 		velRef++;
-		PORTB = error;
 	}
 	
 	for(count = 0; count < 6000; count++)
 	{
-		while(!enc) {}
+		while(!enc) 
+		{
+			setPWM(kP, kD, kI, b);
+		}
+		while(enc)  
+		{
+			setPWM(kP, kD, kI, b);
+		}
 	}
-
-	count = 0;
 
 	while(velRef > 140)
 	{
-		delay(1);
-		ADGO = 1;
-		input = error*kP + (error - errorP)*kD + (error + errorP)*kI + b;
+		for(count = 0; count < 100; count++)
+		{
+			while(!enc) 
+			{
+				setPWM(kP, kD, kI, b);
+			}
+
+			while(enc) 
+			{
+				setPWM(kP, kD, kI, b);
+			}
+		}
+		velRef--;
+	}
+
+	brake();
+}
+
+void	setPWM(uint8_t KP, uint8_t KD, float KI, uint8_t B)
+{
+	if(readings == 64)
+	{
+		speed = tachSpeed / 64;
+		tachSpeed = 0;
+
+		errorD = error;
+		errorI += error;
+		error = velRef - speed;
 		
+		PORTB = error;
+
+		input = (int) error*KP + (error - errorD)*KD + (errorI)*KI + B;	
+
 		if(input > 255)
 		{
 			CCPR1L = 255;
@@ -213,32 +217,15 @@ void	motorControl(uint8_t kP, uint8_t kD, double kI, uint8_t b)
 		{
 			CCPR1L = 0;
 		}		
-		else if(input == 0)
-		{
-			CCPR1L = velRef;
-		}
 
 		else
 		{
 			CCPR1L = input;
 		}
 
-		for(count = 0; count < 100; count++)
-		{
-			while(!enc) {}
-		}
-
-		while(readings < 64) {}
-		readings = 0;
-
-		errorP = error;
-		error = velRef - speed;
-
-		velRef--;
-		PORTB = error;
+		readings = 0; 
+		ADGO = 1;
 	}
-
-	brake();
 }
 
 void	brake(void)
@@ -268,11 +255,5 @@ void interrupt	isr(void)
 		tachSpeed = tachSpeed + ADRES;
 		for (i = 1; i > 0; i--) {}	
 		ADGO = 1;
-	}
-
-	else
-	{
-		speed = tachSpeed / 64;
-		tachSpeed = 0;
 	}
 }
